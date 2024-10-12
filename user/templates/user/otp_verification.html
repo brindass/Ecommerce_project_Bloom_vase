@@ -1,0 +1,19 @@
+{% extends 'user/index.html'%}
+{% load static %}
+{% block body%}
+
+<div class="d-flex justify-content-center align-items-center" style="min-height: 100vh;">
+    <div class="card shadow" style="width: 400px; padding: 20px;">
+        <h2 class="text-center mb-4">Enter your OTP</h2>
+        <form method="post" class="form-group">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="otp" class="form-label">Enter OTP:</label>
+                <input type="text" name="otp" class="form-control" id="otp" placeholder="6-digit OTP" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Verify OTP</button>
+        </form>
+    </div>
+</div>
+
+{% endblock body%}

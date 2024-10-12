@@ -1,0 +1,52 @@
+{% extends 'user/index.html' %}
+{% load static %}
+{% block head %}
+<style>
+    /* Set a border on the images to prevent shifting */
+    #gallery_01 img {
+        border: 2px solid white;
+    }
+
+    /* Change the colour of the active image */
+    .active img {
+        border: 2px solid #333 !important;
+    }
+</style>
+{% endblock head %}
+
+{% block body %}
+<section class="product-details spad" style="margin-top:100px;">
+    <div class="container">
+        <!-- Your content goes here -->
+    </div>
+</section>
+
+<!-- Main Product Image with Zoom -->
+<img id="img_01" src="{% static 'assets/img/vases/Colourful Pedestal Vase Bauhaus Red (Rs.1330).webp' %}" data-zoom-image="{% static 'assets/img/vases/Colourful Pedestal Vase Bauhaus Red (Rs.1330).webp' %}" />
+
+<!-- Gallery Thumbnail -->
+<div id="gal1">
+    <div style="background-image: url({% static 'assets/img/vases/decor_cirle_vases_banner_1.webp' %}); height: 300px; background-size: cover;">
+        test
+    </div>
+</div>
+
+<!-- Include the necessary scripts -->
+<script>
+    // Initialize the ezPlus zoom plugin
+    $('#img_01').ezPlus({
+        gallery: 'gallery_01',
+        cursor: 'pointer',
+        galleryActiveClass: 'active',
+        imageCrossfade: true,
+        loadingIcon: 'http://www.elevateweb.co.uk/spinner.gif'
+    });
+
+    // Pass the images to Fancybox
+    $('#img_01').bind('click', function (e) {
+        var ez = $('#img_01').data('ezPlus');
+        $.fancyboxPlus(ez.getGalleryList());
+        return false;
+    });
+</script>
+{% endblock body %}

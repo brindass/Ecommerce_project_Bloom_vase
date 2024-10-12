@@ -1,0 +1,104 @@
+{%extends 'user/index.html'%}
+{% load static %}
+{%block head%}
+<style>
+    .zoom-container {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .zoom {
+        transition: transform 0.5s;
+        cursor: crosshair;
+    }
+    
+    .zoom:hover {
+        transform: scale(2.5); /* Adjust the scale factor as needed */
+        z-index: 10;
+    }
+    
+</style>
+{%endblock head%}
+{%block body%}
+<section class="product-details spad" style='margin-top:100px;'>
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-6 col-md-6">
+                <div class="product__details__pic">
+                    <div class="product__details__pic__item zoom-container">
+                        {% if images %}
+                        <img id="main-image" class="product__details__pic__item--large zoom" style="width: 98%;"
+                            src="{{ images.0.image.url }}" alt="">
+                        {% endif %}
+                    </div>
+                    <div class="product__details__pic__slider owl-carousel" style='margin-top: 15px'>
+                        {% for image in images %}
+                        <img class="thumbnail-image" data-imgbigurl="{{ image.image.url }}"
+                            src="{{ image.image.url }}" alt="" style="cursor: pointer;">
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 col-md-6">
+                <div class="product__details__text">
+                    <h3>{{product.name}}</h3>
+                    <div class="product__details__rating">
+                        <i class="fa fa-star"></i>
+                        <i class="fa fa-star"></i>
+                        <i class="fa fa-star"></i>
+                        <i class="fa fa-star"></i>
+                        <i class="fa fa-star-half-o"></i>
+                        <span>(18 reviews)</span>
+                    </div>
+                    <div class="product__details__price">₹ {{product.price}}</div>
+                    <p>{{product.description}}</p>
+                    <div class="product__details__quantity">
+                        <div class="quantity">
+                            <div class="pro-qty">
+                                <input type="number" value="1" min="1">
+                            </div>
+                        </div>
+                    </div>
+                    <a href="#" class="primary-btn">ADD TO CARD</a>
+                    <a href="#" class="heart-icon"><span class="icon_heart_alt"></span></a>
+                    <ul>
+                        <li><b>Availability</b> <span>In Stock</span></li>
+                        <li><b>Shipping</b> <span>01 day shipping. <samp>Free pickup today</samp></span></li>
+                        <li><b>Weight</b> <span>0.5 kg</span></li>
+                        <li><b>Share on</b>
+                            <div class="share">
+                                <a href="#"><i class="fa fa-facebook"></i></a>
+                                <a href="#"><i class="fa fa-twitter"></i></a>
+                                <a href="#"><i class="fa fa-instagram"></i></a>
+                                <a href="#"><i class="fa fa-pinterest"></i></a>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- Include the necessary scripts -->
+<script src="{% static 'js/bootstrap.min.js' %}"></script>
+<script src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
+<script src="{% static 'js/jquery-ui.min.js' %}"></script>
+<script src="{% static 'js/jquery.nice-select.min.js' %}"></script>
+<script src="{% static 'js/jquery.slicknav.js' %}"></script>
+<script src="{% static 'js/owl.carousel.min.js' %}"></script>
+<script src="{% static 'js/product.js' %}"></script>
+<script src="{% static 'js/main.js' %}"></script>
+<script src="{% static 'js/mixitup.min.js' %}"></script>
+
+<script>
+    // Function to change the main image when a thumbnail is clicked
+    document.querySelectorAll('.thumbnail-image').forEach(item => {
+        item.addEventListener('click', event => {
+            // Get the data-imgbigurl attribute value
+            const newImageUrl = item.getAttribute('data-imgbigurl');
+            // Update the main image src attribute
+            document.getElementById('main-image').src = newImageUrl;
+        });
+    });
+</script>
+{%endblock body%}
