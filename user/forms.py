@@ -1,6 +1,8 @@
 from django.contrib.auth.forms import UserCreationForm
-from .models import MyUser
+from .models import MyUser, Address
 from django import forms
+
+
 
 class CreateUserForm(UserCreationForm):
     # Adding status field with custom style
@@ -18,4 +20,12 @@ class CreateUserForm(UserCreationForm):
             'password1': forms.PasswordInput(attrs={'class': 'form-control'}),
             'password2': forms.PasswordInput(attrs={'class': 'form-control'}),
         }
+class EditProfileForm(forms.ModelForm):
+    class Meta:
+        model = MyUser
+        fields = ['name','email','first_name','last_name']
 
+class AddressForm(forms.ModelForm):
+    class Meta:
+        model = Address
+        fields = ['street','city','district','state','pincode']

@@ -1,7 +1,8 @@
 from django.urls import path
-from .views import test,list_users, block_or_unblock_user, delete_category, add_category, update_category, create_product, update_product, delete_product
+from .views import test ,list_users, block_or_unblock_user, delete_category, add_category, update_category, create_product, update_product, delete_product, admin_login
 
 urlpatterns = [
+    path('admin_login/',admin_login,name ='admin_login'),
     path('users/',list_users,name ='list_users'),
     path('block_unblock/<int:pk>/',block_or_unblock_user,name ='block_unblock'),
     path('category/',add_category,name ='add_category'),

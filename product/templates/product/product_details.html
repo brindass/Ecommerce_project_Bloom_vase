@@ -52,20 +52,40 @@
                     </div>
                     <div class="product__details__price">₹ {{product.price}}</div>
                     <p>{{product.description}}</p>
-                    <div class="product__details__quantity">
+                    {% comment %} <div class="product__details__quantity">
                         <div class="quantity">
                             <div class="pro-qty">
                                 <input type="number" value="1" min="1">
                             </div>
                         </div>
-                    </div>
-                    <a href="#" class="primary-btn">ADD TO CARD</a>
+                    </div> {% endcomment %}
+                    
+                    
                     <a href="#" class="heart-icon"><span class="icon_heart_alt"></span></a>
                     <ul>
                         <li><b>Availability</b> <span>In Stock</span></li>
                         <li><b>Shipping</b> <span>01 day shipping. <samp>Free pickup today</samp></span></li>
                         <li><b>Weight</b> <span>0.5 kg</span></li>
                         <li><b>Share on</b>
+                            <div>
+                                <form method="POST" action="{% url 'add_to_cart' product.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit" 
+                                        style="
+                                            background-color: #FF5722;
+                                            color: white;
+                                            padding: 6px 12px;
+                                            font-size: 16px;
+                                            margin-top:23px;
+                                            border: none;
+                                            border-radius: 5px;
+                                            cursor: pointer;
+                                            transition: background-color 0.3s ease;
+                                        ">
+                                        ADD TO CART
+                                    </button>
+                                </form>
+                            </div>
                             <div class="share">
                                 <a href="#"><i class="fa fa-facebook"></i></a>
                                 <a href="#"><i class="fa fa-twitter"></i></a>

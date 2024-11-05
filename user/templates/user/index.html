@@ -54,20 +54,20 @@
                             <nav>                                                
                                 <ul id="navigation">  
                                     <li><a href="{% url 'home'%}">Home</a></li>
-                                    <li><a href="shop.html">shop</a></li>
-                                    <li><a href="about.html">about</a></li>
+                                    {% comment %} <li><a href="shop.html">shop</a></li>
+                                    <li><a href="about.html">about</a></li> {% endcomment %}
                                     <li ><a href="#">Latest</a>
                                         <ul class="submenu">
-                                            <li><a href="shop.html"> Product list</a></li>
+                                            <li><a href="{% url 'product_list_search' %}"> Product list</a></li>
                                             <li><a href="product_details.html"> Product Details</a></li>
                                         </ul>
                                     </li>
-                                    <li><a href="blog.html">Blog</a>
+                                    {% comment %} <li><a href="blog.html">Blog</a>
                                         <ul class="submenu">
                                             <li><a href="blog.html">Blog</a></li>
                                             <li><a href="blog-details.html">Blog Details</a></li>
                                         </ul>
-                                    </li>
+                                    </li> {% endcomment %}
                                     <li><a href="#">Pages</a>
                                         <ul class="submenu">
                                             <li><a href="{% url 'user_login'%}">Login</a></li>
@@ -93,8 +93,8 @@
                                         <span class="flaticon-search"></span>
                                     </div>
                                 </li>
-                                <li> <a href="login.html"><span class="flaticon-user"></span></a></li>
-                                <li><a href="cart.html"><span class="flaticon-shopping-cart"></span></a> </li>
+                                <li><a href="{% url 'user_profile' %}"><span class="flaticon-user"></span></a></li>
+                                <li><a href="{% url 'view_cart' %}"><span class="flaticon-shopping-cart"></span></a> </li>
                             </ul>
                         </div>
                     </div>

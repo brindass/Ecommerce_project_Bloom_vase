@@ -1,0 +1,146 @@
+{% extends 'user/index.html' %}
+{% load static %}
+{% block body %}
+<section class="cart_area section_padding">
+    <div class="container">
+        <div class="cart_inner">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Product</th>
+                            <th scope="col">Price</th>
+                            <th scope="col">Quantity</th>
+                            <th scope="col">Total</th>
+                            {% comment %} <th scope="col">Remove</th> {% endcomment %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in cart_items %}
+                        <tr id="item-{{ item.id }}">
+                            <td>
+                                <div class="media">
+                                    <div class="d-flex">
+                                        <img src="{{ item.product.base_image.url }}" alt="" />
+                                    </div>
+                                    <div class="media-body">
+                                        <p>{{ item.product.name }}</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <h5>₹ {{ item.product.price }}</h5>
+                            </td>
+                            <td>
+                              <div class="quantity-toggle" style="display: flex; align-items: center; gap: 8px;">
+                                <button class="toggle-btn minus" onclick="updateQuantity({{ item.id }}, -1)">
+                                  <i class="ti-minus"></i>
+                                </button>
+                                <div class="quantity-display" id="quantity-{{ item.id }}">
+                                  {{ item.quantity }}
+                                </div>
+                                <button class="toggle-btn plus" onclick="updateQuantity({{ item.id }}, 1)" min = "1" max="{{ item.product.quantity }}">
+                                  <i class="ti-plus"></i>
+                                </button>
+                              </div>
+                            </td>
+                            <td>
+                              <h5 id="subtotal-{{ item.id }}">₹ {{ item.subtotal }}</h5>
+                            </td>
+                            <td>
+                                <a href="{% url 'remove_from_cart' item.id %}"><button 
+                                    style="background-color: red; color: white; border: none; border-radius: 5px; padding: 5px 10px; cursor: pointer;" 
+                                   > Remove</button> 
+                            </td>
+                            
+                        </tr>
+                        {% endfor %}
+                        <tr>
+                            <td></td>
+                            <td></td>
+                            <td>
+                                <h5>Subtotal</h5>
+                            </td>
+                            <td>
+                                <h5 id="cart-total">₹ {{ total }}</h5>
+                            </td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="checkout_btn_inner float-right">
+                    <a class="btn_1 checkout_btn_1" href="#">Proceed to checkout</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<style>
+  /* Quantity Update Styling */
+  .quantity-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .toggle-btn {
+    width: 35px;
+    height: 35px;
+    border: none;
+    background-color:#96b3a3;
+    color: white;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  .toggle-btn:hover {
+    background-color: #0056b3;
+  }
+  .quantity-display {
+    width: 50px;
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #333;
+  }
+</style>
+<script>
+  function updateQuantity(itemId, change) {
+    // Get the current quantity
+    const quantityDisplay = document.getElementById(`quantity-${itemId}`);
+    const currentQuantity = parseInt(quantityDisplay.textContent);
+
+    // Update only if quantity is 1 or higher
+    if (currentQuantity + change >= 1) {
+        const newQuantity = currentQuantity + change;
+        quantityDisplay.textContent = newQuantity;  // Update display before server confirmation
+
+        // AJAX request to update quantity on server
+        fetch("{% url 'update_cart_item' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}",  // Include CSRF token for security
+            },
+            body: JSON.stringify({
+                item_id: itemId,
+                quantity: newQuantity,
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.subtotal) {
+                document.getElementById(`subtotal-${itemId}`).innerText = `₹ ${data.subtotal}`;
+                document.getElementById("cart-total").innerText = `₹ ${data.total}`; // Update cart total
+            }
+        })
+        .catch(error => console.error("Error:", error));
+    }
+}
+
+</script>
+{% endblock body %}

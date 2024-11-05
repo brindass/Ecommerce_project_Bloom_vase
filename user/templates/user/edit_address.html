@@ -1,0 +1,6 @@
+<h1 style="text-align:center; font-family:Arial, sans-serif; color:#333;">Edit Address</h1>
+<form method="post" style="max-width:400px; margin:20px auto; padding:20px; border:1px solid #ddd; border-radius:8px; background-color:#f9f9f9; box-shadow:0 4px 8px rgba(0,0,0,0.1);">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" style="width:100%; padding:10px; border:none; background-color:#9c27b0; color:white; font-size:16px; border-radius:4px; cursor:pointer;">Save</button>
+</form>

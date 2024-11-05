@@ -1,5 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
+from datetime import datetime
+from product.models import Product
+
 
 
 class MyUserManager(BaseUserManager):
@@ -40,6 +43,9 @@ class MyUser(AbstractBaseUser):
         max_length=255,
         unique=True,
     )
+    first_name = models.CharField(max_length=100, blank=True, null=True)
+    last_name = models.CharField(max_length=100, blank=True, null=True)
+
     is_active = models.BooleanField(default=False)
     is_admin = models.BooleanField(default=False)
 
@@ -66,3 +72,27 @@ class MyUser(AbstractBaseUser):
         "Is the user a member of staff?"
         # Simplest possible answer: All admins are staff
         return self.is_admin
+    
+
+class Address(models.Model):
+    users = models.ForeignKey('MyUser',on_delete=models.CASCADE, related_name='addresses')
+    street = models.CharField(max_length=100)
+    city=models.CharField(max_length=100)
+    district=models.CharField(max_length=100)
+    state=models.CharField(max_length=100)
+    pincode=models.IntegerField()
+
+class Cart(models.Model):
+    user = models.ForeignKey('MyUser', on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Cart for {self.user}"
+    
+class CartItem(models.Model):
+    cart = models.ForeignKey('Cart', on_delete=models.CASCADE,related_name='items')
+    product = models.ForeignKey('product.Product', on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
+
+    
+    

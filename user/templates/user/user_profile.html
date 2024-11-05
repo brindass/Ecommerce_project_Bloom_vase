@@ -1,0 +1,88 @@
+<div style="width: 50%; margin: 40px auto; background-color: #ffffff; border: 1px solid #ddd; padding: 20px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); border-radius: 8px;">
+    <h1 style="text-align: center; font-size: 2rem; color: #333;">User Profile</h1><h5><a href = "{% url 'home' %}" style="text-decoration: none; color: #007bff;">Home</h5></a>
+    
+    <!-- Add buttons for Profile Details and Orders -->
+    <div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 20px;">
+        <button id="profile-details-btn" style="padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: background-color 0.3s ease;">
+            Profile Details
+        </button>
+        <button id="orders-btn" style="padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: background-color 0.3s ease;">
+            Orders
+        </button>
+       
+    </div>
+
+    <!-- Profile Details Section -->
+    <div id="profile-details-section" style="font-size: 1.2rem; margin-bottom: 20px;">
+        <p>Name: {{ profile_user.name }}</p>
+        <p>Email: {{ profile_user.email }}</p>
+        <p>First Name: {{ profile_user.first_name }}</p>
+        <p>Last Name: {{ profile_user.last_name }}</p>
+    </div>
+
+    <div style="margin-top: 5px;">
+        <a href="{% url 'edit_profile' %}" style="text-decoration: none; color: #007bff; font-weight: bold; margin-right: 10px; transition: color 0.3s ease;">Edit</a>
+    </div>
+
+    <!-- Addresses Section -->
+    <div id="addresses-section">
+        <h2 style="font-size: 1.5rem; margin-bottom: 10px; color: #333;">Addresses</h2>
+        {% for address in addresses %}
+            <p style="margin: 10px 0; font-size: 1.1rem; color: #444;">
+                {{ address.street }}, {{ address.city }}, {{ address.state }}, {{ address.pincode }}
+            </p>
+            <div style="margin-top: 5px;">
+                <a href="{% url 'edit_address' address.id %}" style="text-decoration: none; color: #007bff; font-weight: bold; margin-right: 10px; transition: color 0.3s ease;">Edit</a>
+                <a href="{% url 'delete_address' address.id %}" style="text-decoration: none; color: #007bff; font-weight: bold; transition: color 0.3s ease;">Delete</a>
+            </div>
+        {% endfor %}
+        <a href="{% url 'add_address' %}" style="display: block; margin-top: 20px; padding: 10px 15px; background-color:  #2196F3; color: #ffffff; text-align: center; border-radius: 5px; text-decoration: none; font-weight: bold; transition: background-color 0.3s ease;">Add Address</a>
+        
+    </div>
+
+
+
+        <div>
+        <a href="{% url 'change_password' %}" style="text-decoration: none; color: #007bff; font-weight: bold; margin-right: 10px; margin-top: 100px; transition: color 0.3s ease;">Change Password</a>
+    </div>
+
+    {% comment %} <!-- Orders Section (Initially hidden) -->
+    <div id="orders-section" style="display: none;">
+        <h2 style="font-size: 1.5rem; margin-bottom: 10px; color: #333;">Orders</h2>
+        {% if orders %}
+            <ul style="list-style-type: none; padding-left: 0;">
+                {% for order in orders %}
+                    <li style="margin-bottom: 10px; font-size: 1.1rem;">
+                        Order #{{ order.id }} - {{ order.date }} - {{ order.status }}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p style="font-size: 1.1rem; color: #444;">No orders found.</p>
+        {% endif %}
+    </div>
+</div> {% endcomment %}
+
+<!-- Add JavaScript for toggling between Profile Details and Orders -->
+<script>
+    document.getElementById('profile-details-btn').addEventListener('click', function() {
+        document.getElementById('profile-details-section').style.display = 'block';
+        document.getElementById('addresses-section').style.display = 'block';
+        document.getElementById('orders-section').style.display = 'none';
+    });
+
+     {% comment %} document.getElementById('orders-btn').addEventListener('click', function() {
+        document.getElementById('profile-details-section').style.display = 'none';
+        document.getElementById('addresses-section').style.display = 'none';
+        document.getElementById('orders-section').style.display = 'block'; 
+    }); {% endcomment %}
+</script>
+</div>
+</div>
+
+
+ {% comment %} <h2>Orders</h2>
+{% for order in orders %}
+    <p>Order #{{ order.id }} - {{ order.status }}</p>
+    <a href="{% url 'cancel_order' order.id %}">Cancel Order</a>
+{% endfor %}  {% endcomment %}
