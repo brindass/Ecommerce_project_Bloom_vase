@@ -6,15 +6,16 @@
         <button id="profile-details-btn" style="padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: background-color 0.3s ease;">
             Profile Details
         </button>
-        <button id="orders-btn" style="padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: background-color 0.3s ease;">
+        <a href="{% url 'order_success' %}" style="text-decoration: none; color: #007bff; font-weight: bold; margin-right: 10px; transition: color 0.3s ease;">Orders</a>
+        {% comment %} <button id="orders-btn" style="padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: background-color 0.3s ease;">
             Orders
-        </button>
+        </button> {% endcomment %}
        
     </div>
 
     <!-- Profile Details Section -->
     <div id="profile-details-section" style="font-size: 1.2rem; margin-bottom: 20px;">
-        <p>Name: {{ profile_user.name }}</p>
+        <p>Name: {{ profile_user.username }}</p>
         <p>Email: {{ profile_user.email }}</p>
         <p>First Name: {{ profile_user.first_name }}</p>
         <p>Last Name: {{ profile_user.last_name }}</p>
@@ -61,7 +62,7 @@
             <p style="font-size: 1.1rem; color: #444;">No orders found.</p>
         {% endif %}
     </div>
-</div> {% endcomment %}
+</div>
 
 <!-- Add JavaScript for toggling between Profile Details and Orders -->
 <script>

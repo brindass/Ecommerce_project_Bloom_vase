@@ -59,7 +59,7 @@
                                     <li ><a href="#">Latest</a>
                                         <ul class="submenu">
                                             <li><a href="{% url 'product_list_search' %}"> Product list</a></li>
-                                            <li><a href="product_details.html"> Product Details</a></li>
+                                            <li><a href="{% url 'wishlist' %}">Wishlist</a></li>
                                         </ul>
                                     </li>
                                     {% comment %} <li><a href="blog.html">Blog</a>
@@ -68,7 +68,7 @@
                                             <li><a href="blog-details.html">Blog Details</a></li>
                                         </ul>
                                     </li> {% endcomment %}
-                                    <li><a href="#">Pages</a>
+                                    {% comment %} <li><a href="#">Pages</a>
                                         <ul class="submenu">
                                             <li><a href="{% url 'user_login'%}">Login</a></li>
                                             <li><a href="cart.html">Cart</a></li>
@@ -76,7 +76,7 @@
                                             <li><a href="confirmation.html">Confirmation</a></li>
                                             <li><a href="checkout.html">Product Checkout</a></li>
                                         </ul>
-                                    </li>
+                                    </li> {% endcomment %}
                                     {% if user.is_authenticated %}
                                     <li><a href="{% url 'user_logout'%}">Logout</a></li>
                                     {% else %}

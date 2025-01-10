@@ -12,9 +12,9 @@ class CreateUserForm(UserCreationForm):
 
    class Meta:
         model = MyUser
-        fields = ['name', 'email', 'password1', 'password2']
+        fields = ['username', 'email', 'password1', 'password2']
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'username': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
             # Here we override the widgets for password1 and password2 to ensure the class is applied
             'password1': forms.PasswordInput(attrs={'class': 'form-control'}),
@@ -23,7 +23,7 @@ class CreateUserForm(UserCreationForm):
 class EditProfileForm(forms.ModelForm):
     class Meta:
         model = MyUser
-        fields = ['name','email','first_name','last_name']
+        fields = ['username','email','first_name','last_name']
 
 class AddressForm(forms.ModelForm):
     class Meta:

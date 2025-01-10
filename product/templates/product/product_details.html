@@ -26,16 +26,18 @@
             <div class="col-lg-6 col-md-6">
                 <div class="product__details__pic">
                     <div class="product__details__pic__item zoom-container">
-                        {% if images %}
                         <img id="main-image" class="product__details__pic__item--large zoom" style="width: 98%;"
-                            src="{{ images.0.image.url }}" alt="">
-                        {% endif %}
+                            src="{{ product.base_image.url }}" alt="NO">
+                        {% comment %} {% if images %}
+                        <img id="main-image" class="product__details__pic__item--large zoom" style="width: 98%;"
+                            src="{{ product.base_image.url }}" alt="NO">
+                        {% endif %}   {% endcomment %}
                     </div>
-                    <div class="product__details__pic__slider owl-carousel" style='margin-top: 15px'>
+                     <div class="product__details__pic__slider owl-carousel" style='margin-top: 15px'>
                         {% for image in images %}
                         <img class="thumbnail-image" data-imgbigurl="{{ image.image.url }}"
-                            src="{{ image.image.url }}" alt="" style="cursor: pointer;">
-                        {% endfor %}
+                            src="{{ product.base_image.url }}" alt="no" style="cursor: pointer;">
+                        {% endfor %} 
                     </div>
                 </div>
             </div>
@@ -51,6 +53,21 @@
                         <span>(18 reviews)</span>
                     </div>
                     <div class="product__details__price">₹ {{product.price}}</div>
+                    <div class="wishlist-btn-container" data-product-id="{{ product.id }}">
+                        <div class="d-inline-flex align-items-center p-2 wishlist-btn" style="cursor: pointer;">
+                            {% if product_in_wishlist %}
+                            <button class="remove-from-wishlist" style="background-color: #ff6f61; color: white;">
+                                <i class="fas fa-heart"></i> Remove from Wishlist
+                            </button>
+                            {% else %}
+                            <button class="add-to-wishlist" style="background-color: #ccc; color: black;">
+                                <i class="fas fa-heart"></i> Add to Wishlist
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    
                     <p>{{product.description}}</p>
                     {% comment %} <div class="product__details__quantity">
                         <div class="quantity">
@@ -66,10 +83,12 @@
                         <li><b>Availability</b> <span>In Stock</span></li>
                         <li><b>Shipping</b> <span>01 day shipping. <samp>Free pickup today</samp></span></li>
                         <li><b>Weight</b> <span>0.5 kg</span></li>
-                        <li><b>Share on</b>
+                        {% comment %} <li><b>Share on</b> {% endcomment %}
                             <div>
                                 <form method="POST" action="{% url 'add_to_cart' product.id %}">
                                     {% csrf_token %}
+                                    <input type="hidden" name="page" value="{{page}}">
+
                                     <button type="submit" 
                                         style="
                                             background-color: #FF5722;
@@ -92,6 +111,37 @@
                                 <a href="#"><i class="fa fa-instagram"></i></a>
                                 <a href="#"><i class="fa fa-pinterest"></i></a>
                             </div>
+                            {% comment %} {% if variants %}
+                            <p>variants</p> {% endcomment %}
+                            {% comment %} {{variants}} {% endcomment %}
+                             {% comment %} {% if variants %} {% endcomment %}
+                             <ul>
+                                {% comment %} {% for variant in variants %}
+<a href="{% url 'product_details' variant.pk %}">
+    {% if variants_images and variants_images.product.id == variant.id %}
+        <img src="{{ variants_images.image.url }}" alt="{{ variant.name }}" style="width: 80px; height: auto;">
+    {% endif %}
+</a>
+{% endfor %}
+{% endif %} {% endcomment %}
+{% if variants %}
+<h3>Available Variants:</h3>
+<ul>
+    {% for variant in variants %}
+    <li>
+        <a href="{% url 'variant_details' variant.pk %}">
+            {% if variant.variant_image %}
+            <img src="{{ variant.variant_image.url }}" alt="{{ variant.color }}" style="width: 80px; height: auto">
+            {% endif %}
+        </a>
+        <p>{{ variant.color }}</p>
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+</ul>
+
                         </li>
                     </ul>
                 </div>
@@ -121,4 +171,50 @@
         });
     });
 </script>
+<script>
+$(document).ready(function () {
+    $('.wishlist-btn-container').on('click', '.add-to-wishlist, .remove-from-wishlist', function (e) {
+        e.preventDefault();
+
+        const button = $(this);
+        const productId = button.closest('.wishlist-btn-container').data('product-id');
+        const isAdding = button.hasClass('add-to-wishlist');
+        const url = isAdding 
+            ? `{% url 'add_to_wishlist' 0 %}`.replace('0', productId) 
+            : `{% url 'remove_from_wishlist' 0 %}`.replace('0', productId);
+
+        $.ajax({
+            url: url,
+            type: 'POST',
+            data: {
+                'csrfmiddlewaretoken': '{{ csrf_token }}',
+            },
+            success: function (response) {
+                if (response.status === 'success' || response.status === 'info') {
+                    // Toggle button state
+                    if (isAdding) {
+                        button.removeClass('add-to-wishlist').addClass('remove-from-wishlist').text('Remove from Wishlist').css({
+                            backgroundColor: '#ff6f61',
+                            color: 'white'
+                        });
+                    } else {
+                        button.removeClass('remove-from-wishlist').addClass('add-to-wishlist').text('Add to Wishlist').css({
+                            backgroundColor: '#ccc',
+                            color: 'black'
+                        });
+                    }
+                    // Display a message (optional)
+                    alert(response.message);
+                } else {
+                    alert(response.message || 'An error occurred.');
+                }
+            },
+            error: function () {
+                alert('Something went wrong. Please try again later.');
+            }
+        });
+    });
+});
+</script>
+
 {%endblock body%}

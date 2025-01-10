@@ -1,12 +1,15 @@
 from django.shortcuts import render
 from user.models import MyUser 
 from django.contrib import messages
+from django.db.models import Q
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.core.paginator import Paginator
 from product.models import Category, Product
-from product.forms import ProductForm
+from product.forms import ProductForm, ProductVariantFormSet
 from django.contrib.auth import authenticate, login
 from django.http import HttpResponse
+from order.models import Order,OrderItem, OrderCancellation
 
 # Create your views here.
 def test(request):
@@ -36,11 +39,18 @@ def list_users(request):
     print('inside users list')
     if 'admin' in request.session:
         print('inside ssession')
-        users = MyUser.objects.all().exclude(name = 'admin')
+        search_query = request.GET.get('search','')
+        if search_query:
+            users = MyUser.objects.filter(
+                Q(username__icontains=search_query) |
+                Q(email__icontains=search_query)
+                ).exclude(username='admin')
+        else:
+            users = MyUser.objects.all().exclude(username = 'admin')
         paginator = Paginator(users,12)
         page_number = request.GET.get('page')
         page = paginator.get_page(page_number)
-        context = {'users':page}
+        context = {'users':page, 'search_query': search_query}
         return render(request,'my_admin/users.html',context)
     return redirect('admin_login')
 
@@ -84,24 +94,25 @@ def delete_category(request,pk):
 
 def create_product(request):
     if 'admin' in request.session:
-        form = ProductForm()  # Initialize an empty form
-        if request.method == 'POST':
-            print("Inside POST")
-            print("Request Files:", request.FILES)  
-            print("Request POST Data:", request.POST)
-        
-            form = ProductForm(request.POST, request.FILES)  # Pass both POST and FILES for image uploads
-            
-            if form.is_valid():
-                print("The form is valid")
-                form.save() 
-            else:
-                print("Form errors:", form.errors) 
+        form = ProductForm()
+        formset = ProductVariantFormSet()
 
-        products = Product.objects.all()  # Fetch all products
+        if request.method == 'POST':
+            form = ProductForm(request.POST, request.FILES)
+            if form.is_valid():
+                product = form.save()  # Save the product
+                formset = ProductVariantFormSet(request.POST, request.FILES, instance=product)
+                if formset.is_valid():
+                    formset.save()  # Save variants
+                    return redirect('create&list_product')
+                else:
+                    print("Variant Formset Errors:", formset.errors)
+
+        products = Product.objects.all()
         context = {
-            'form': form,   # Pass the form to the template
-            'products': products  # Pass the products to the template
+            'form': form,
+            'formset': formset,
+            'products': products,
         }
         return render(request, 'my_admin/product_list.html', context)
 
@@ -125,8 +136,11 @@ def update_product(request):
                 product = Product.objects.get(id=product_id)  # Update existing product
                 form = ProductForm(request.POST, request.FILES, instance=product)
 
-            if form.is_valid():
-                form.save()
+                if form.is_valid():
+                    product = form.save()
+                else:
+                    print(form.errors)
+
                 # Redirect to a success page or reload the page
                 return redirect('create&list_product')
             else:
@@ -146,3 +160,118 @@ def delete_product(request,pk):
         product.save()
         return redirect('create&list_product')
 
+def list_order(request):
+    if 'admin' in request.session:
+        search = request.GET.get('q', '')
+        print("Search Query: ", search)
+
+        if request.method == "POST":
+            order_id = request.POST.get('order_id')
+            new_status = request.POST.get('new_status')
+            print(f"Order ID: {order_id}, New Status: {new_status}")
+            
+            try:
+                order = Order.objects.get(pk=order_id)
+                print("Order User: ", order.user)
+
+                if order.is_return:
+                    order.return_status = new_status
+                    if new_status == 'Returned':
+                        order.save()
+                    elif new_status == 'Delivered':
+                        order.payment_status = 'Paid'
+                        order.save()
+
+                if new_status == "Cancelled":
+                    print("Order Cancelled")
+                    order_items = OrderItem.objects.filter(order=order)
+                    for item in order_items: 
+                        item.product.quantity += item.quantity
+                        item.product.save()
+
+                if not order.is_return:
+                    order.status = new_status
+                    order.save()
+
+                return JsonResponse({'success': True})
+            except Order.DoesNotExist:
+                return JsonResponse({'success': False, 'error': 'Order does not exist'})
+
+        orders = Order.objects.all().order_by('-created_at')
+        if search:
+            orders = orders.filter(
+                Q(id__icontains=search) |
+                Q(user__username__icontains=search) |
+                Q(status__icontains=search)
+            )
+        paginator = Paginator(orders, 10)  
+        page_number = request.GET.get('page')
+        page = paginator.get_page(page_number)
+
+        context = {
+            'orders': page,
+        }
+        return render(request, 'my_admin/order_list.html', context)
+    
+def order_details(request, order_id):
+    if 'admin' in request.session:
+        order = get_object_or_404(Order, id=order_id)
+        order_items = OrderItem.objects.filter(order=order)
+
+        context = {
+            'order': order,
+            'order_items': order_items,
+        }
+        return render(request, 'my_admin/admin_order_details.html', context)
+    
+def admin_cancel_update(request):
+    if 'admin' in request.session:
+        pending_cancellations = OrderCancellation.objects.filter(cancel_status='pending').order_by('-updated_at')
+        paginator = Paginator(pending_cancellations, 10)
+        page_number = request.GET.get('page')
+        page = paginator.get_page(page_number)
+
+        context = {
+            'pending_cancellations': page,
+        }
+        return render(request, 'my_admin/admin_cancel_update.html', context)
+    return redirect('admin_login')
+
+def cancel_approve(request, pk):
+    if 'admin' in request.session:
+        cancellation = get_object_or_404(OrderCancellation, id=pk)
+        order = cancellation.order
+
+        # Update stock for order items
+        order_items = OrderItem.objects.filter(order=order)
+        for item in order_items:
+            item.product.quantity += item.quantity
+            item.product.save()
+
+        # Update order and cancellation status
+        order.is_cancelled = True
+        order.status = 'cancelled'
+        order.save()
+
+        cancellation.cancel_status = 'approved'
+        cancellation.save()
+        messages.success(request, f"Cancellation request for Order #{order.id} has been approved.")
+        return redirect('admin_cancel_update')
+    return redirect('admin_login')
+
+
+def cancel_reject(request, pk):
+    if 'admin' in request.session:
+        cancellation = get_object_or_404(OrderCancellation, id=pk)
+        order = cancellation.order
+
+        # Update order and cancellation status
+        order.status = 'cancel rejected'
+        order.is_cancelled = False
+        order.save()
+
+        cancellation.cancel_status = 'rejected'
+        cancellation.save()
+        messages.error(request, f"Cancellation request for Order #{order.id} has been rejected.")
+        return redirect('admin_cancel_update')
+    return redirect('admin_login')

@@ -1,0 +1,282 @@
+{% extends 'user/index.html' %}
+{% load static %}
+{% block body %}
+<!DOCTYPE html>
+<html lang="en">
+    {% comment %} {% if messages %}
+            {% for message in messages %}
+            <p style="color: red; text-align: center;">{{ message }}</p>
+            {% endfor %}
+            {% endif %} {% endcomment %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f9;
+            color: #333;
+        }
+        
+        .checkout-container {
+            display: flex;
+            max-width: 1200px;
+            margin: 40px auto;
+            gap: 20px;
+            padding: 20px;
+        }
+        
+        .shipping-payment {
+            flex: 1.8;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .order-summary {
+            flex: 1;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        /* Address Card */
+        .address-card {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        .address-card p {
+            margin: 5px 0;
+            color: #555;
+        }
+
+        /* Positioning edit button below address text */
+        .edit-address-btn {
+            background-color: #3498db;
+            color: white;
+            padding: 6px 10px;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.85em;
+            text-decoration: none;
+            margin-top: 10px;
+            display: inline-block;
+            margin-left: 0; /* aligns button to the left */
+        }
+
+        .add-address-btn {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.95em;
+            text-align: center;
+            text-decoration: none;
+        }
+
+        /* Order Items */
+        .order-items ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .order-items li {
+            display: flex;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .order-items img {
+            width: 80px;
+            height: 80px;
+            border-radius: 6px;
+            margin-right: 15px;
+            object-fit: cover;
+        }
+
+        .item-info h4 {
+            font-size: 1.1em;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .item-info p {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        /* Total Price */
+        .total {
+            display: flex;
+            justify-content: space-between;
+            font-size: 1.2em;
+            padding: 15px 0;
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* Payment Method */
+        .payment-method {
+            margin-top: 25px;
+            padding-left: 30px;
+        }
+
+        .payment-method label {
+            display: block;
+            margin-top: 15px;
+            font-size: 1em;
+            cursor: pointer;
+            color: #555;
+        }
+
+        /* Place Order Button */
+        .place-order-btn {
+            width: 25%;
+            padding: 10px;
+            background-color: #FF5722;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .place-order-btn:hover {
+            background-color: #2980b9;
+        }
+    </style>
+</head>
+<body>
+
+<div class="checkout-container">
+  
+    <!-- Shipping Address Section -->
+    <div class="shipping-payment">
+        <h2>Shipping Address</h2>
+        
+        <div class="address-section">
+            <form id = "address-form"action="{% url 'checkout' %}" method="POST">
+        {% csrf_token %}
+        
+        <!-- Address Selection Section -->
+        <div class="address-selection">
+            <h2>Select Delivery Address</h2>
+            {% for address in addresses %}
+                <div class="address-card">
+                    <p>{{ address.street }}, {{ address.city }}</p>
+                    <p>{{ address.state }}</p>
+                    <p>Pincode: {{ address.pincode }}</p>
+                    <a href="{% url 'edit_address' address.id %}" class="edit-address-btn">Edit</a>
+                    
+                    <input type="radio" name="address" value="{{ address.id }}" required  style="float: right; margin-top: -30px;">
+                </div> 
+            {% endfor %}
+            <a href="{% url 'add_address' %}?next={% url 'checkout' %}" class="add-address-btn">Add New Address</a>
+
+        </div>
+
+        <!-- Order Summary Section -->
+        <div class="order-summary">
+            <h2>Your Order</h2>
+            <div class="order-items">
+                <ul>
+                    {% for item in cart_items %}
+                        <li>
+                            {% if item.variant %}
+                            <img src="{{ item.image }}" alt="{{ item.variant.product.name }}">
+                            {% else %}
+                            <img src="{{ item.product.base_image.url }}" alt="{{ item.product.name }}">
+                            {% endif %}
+                            <div class="item-info">
+                                {% if item.variant %}
+                                <h4>{{ item.variant.product.name }}</h4>
+                                <small style="color: gray;">Variant: {{ item.variant.color }}</small>
+                                <p>Quantity: {{ item.quantity }}</p>
+                                <p>Price: ₹{{ item.variant.product.price|floatformat:2 }}</p>
+                                <p>Total Price: {{ item.quantity }} *  ₹{{ item.variant.product.price }}
+                                {% else %}
+                                <h4>{{ item.product.name }}</h4>
+                                <p>Quantity: {{ item.quantity }}</p>
+                                <p>Price: ₹{{ item.product.price|floatformat:2 }}</p>
+                                <p>Total Price: {{ item.quantity }} *  ₹{{ item.product.price }}
+                                {% endif %}
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="total">
+                <span>Total:</span>
+                <strong>₹{{ total|floatformat:2 }}</strong>
+            </div>
+        </div>
+
+        <!-- Payment Method Section -->
+        <div class="payment-method">
+            <h2>Payment Method</h2>
+            <label>
+                <input type="radio" name="payment_method" value="online" required> Online Payment
+            </label>
+            <label>
+                <input type="radio" name="payment_method" value="cod" required> Cash on Delivery
+            </label>
+            <label>
+                <input type="radio" name="payment_method" value="wallet" required> Wallet
+            </label>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" onclick="validateForm()" class="place-order-btn">Place Order</button>
+    </form>
+</div>
+<script>
+    function validateForm() {
+        const selectedAddress = document.querySelector('input[name="address"]:checked');
+        const selectedPaymentMethod = document.querySelector('input[name="payment_method"]:checked');
+
+        // Validate address selection
+        if (!selectedAddress) {
+            alert('Please select an address before proceeding.');
+            return false; // Prevent form submission
+        }
+
+        // Validate payment method selection
+        if (!selectedPaymentMethod) {
+            alert('Please select a payment method.');
+            return false; // Prevent form submission
+        }
+
+        // Submit the form if both validations pass
+        document.getElementById('address-form').submit();
+    }
+</script>
+
+</body>
+</html>
+{% endblock body %}

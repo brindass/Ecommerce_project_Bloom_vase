@@ -9,12 +9,13 @@ from django.core.mail import send_mail
 from django.utils import timezone
 from datetime import timedelta
 from django.conf import settings
-from .models import MyUser, Address, Cart, CartItem, Product
+from .models import MyUser, Address, Cart, CartItem, Product, ProductVariant, Wishlist, WishlistItem
 from datetime import datetime
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 import json
 from django.contrib.auth.hashers import make_password, check_password
+from order.models import Order, OrderItem
 # Create your views here.
 
 def test(request):
@@ -158,9 +159,10 @@ def home(request):
 # user profile details
 @login_required
 def user_profile(request):
-    if 'user' in request.session:
+    if request.user.is_authenticated:
         user = request.user
         addresses = user.addresses.all()  
+        
         context = {'profile_user': user, 'addresses': addresses}
         return render(request, 'user/user_profile.html', context)
     return redirect('user_login')
@@ -194,10 +196,13 @@ def add_address(request):
             address = form.save(commit=False)
             address.users = user 
             address.save()
-            return redirect('user_profile')
+            
+        
+            next_url = request.GET.get('next', 'user_profile')
+            return redirect(next_url)
     else:
         form = AddressForm() 
-        context = {'form': form}
+    context = {'form': form}
     return render(request, 'user/add_address.html', context)
 
 @login_required
@@ -221,28 +226,73 @@ def delete_address(request, address_id):
 
 # cart 
 @login_required
-def add_to_cart(request,product_id):
+def add_to_cart(request, product_id):
     if request.method == 'POST':
+        print(request.POST)
         user = request.user
-        product = get_object_or_404(Product,id = product_id)
+        page = request.POST.get('page')
+        print("page name ",page)
+        print(user)
+        variant = None
 
-        #Ensure product stock is sufficient
-        if product.quantity <=0:
+        if page == "variants_page":
+            variant = get_object_or_404(ProductVariant, id=product_id)
+        elif page == "product_page":
+            # variant = get_object_or_404(ProductVariant, id=product_id)
+            print(">>>>>>>",product_id)
+            default_variant = ProductVariant.objects.filter(product_id=product_id).first()
+            # print("...........",default_variant.product.name)
+            # product = get_object_or_404(Product, id=product_id)
+            if default_variant:
+                variant = get_object_or_404(ProductVariant, id=default_variant.id)
+            else:
+                product = get_object_or_404(Product, id=product_id)
+
+        # variant_id = request.POST.get('variant_id')  # Fetch variant ID from POST data
+        # print(variant_id)
+        # product = get_object_or_404(Product, id=product_id)
+        
+        # Fetch the variant if ID is provided
+        # if variant_id:
+        #     variant = get_object_or_404(ProductVariant, id=variant_id)
+        #     print(variant)
+        #     if variant.quantity <= 0:
+        #         messages.error(request, f"{variant.product.name} - {variant.color} is out of stock")
+        #         return redirect('variant_details', pk=variant.id)
+
+        # Check base product stock if no variant is selected
+        if not variant and product.quantity <= 0:
             messages.error(request, f"{product.name} is out of stock")
-            return redirect('view_cart')
+            return redirect('product_details', pk=product_id)
         
-        cart, created = Cart.objects.get_or_create(user = user)
-        cart_item, created = CartItem.objects.get_or_create(cart = cart, product = product)
-        
-        
+        # Create or retrieve cart
+        cart, created = Cart.objects.get_or_create(user=user)
+
+        # Add item to cart
+        if variant:
+            # print(variant,"before creation")
+            # print("the product ",product.name)
+            # print("the variant ",variant.product.name,variant.color)
+
+            cart_item, created = CartItem.objects.get_or_create(cart=cart, product=variant.product, variant=variant)
+            v = variant
+            print(variant,"after creation")
+        else:
+            cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product, variant=None)
+            v = product
+        # Update quantity
         if not created:
-            if cart_item.quantity > product.quantity:
-                messages.error(request, f"only {product.quantity} items of {product.name} is available")
+            available_quantity = variant.quantity if variant else product.quantity
+            if cart_item.quantity >= available_quantity:
+                messages.error(request, f"Only {available_quantity} items available")
             else:
                 cart_item.quantity += 1
                 cart_item.save()
+        else:
+            cart_item.quantity = 1
+            cart_item.save()
 
-        # messages.success(request,f"{product.name} added to cart" )
+        messages.success(request, f"{v} added to cart")
         return redirect('view_cart')
 
 
@@ -250,17 +300,20 @@ def add_to_cart(request,product_id):
 @login_required
 def view_cart(request):
     user = request.user
-    cart = Cart.objects.filter(user=user).first()  # Corrected filter condition
-    if cart:
-        cart_items = cart.items.all() if cart else []
-    
-    #calculate subtotal for each cart_item
-    for item in cart_items:
-        item.subtotal = item.product.price * item.quantity
-    total = sum(item.product.price * item.quantity for item in cart_items)
+    cart = Cart.objects.filter(user=user).first()  # Retrieve user's cart
+    cart_items = cart.items.all() if cart else []
 
-    
-    context = {'cart_items': cart_items,'total':total}
+    for item in cart_items:
+        if item.variant:  # If a variant is selected
+            item.subtotal = item.variant.product.price * item.quantity  # Use variant's price and quantity
+            item.variant_name = f"{item.variant.product.name} - {item.variant.color}"  # Variant details
+        else:  # Base product is selected
+            item.subtotal = item.product.price * item.quantity  # Use product's price and quantity
+            item.variant_name = None
+
+    total = sum(item.subtotal for item in cart_items)
+
+    context = {'cart_items': cart_items, 'total': total}
     return render(request, 'user/view_cart.html', context)
 
 
@@ -270,6 +323,7 @@ def view_cart(request):
 def remove_from_cart(request, item_id):
     print('remove')
     cart_item = get_object_or_404(CartItem,id = item_id, cart__user = request.user)
+    print(cart_item)
     cart_item.delete()
     return redirect('view_cart')
 
@@ -280,23 +334,27 @@ def update_cart_item(request):
         item_id = data.get('item_id')
         new_quantity = data.get('quantity')
 
-        cart_item = get_object_or_404(CartItem,id = item_id, cart__user = request.user)
+        cart_item = get_object_or_404(CartItem, id=item_id, cart__user=request.user)
         cart_item.quantity = new_quantity
-        cart_item.save() 
+        cart_item.save()
 
-        #calculate subotal
-        subtotal = cart_item.product.price * cart_item.quantity
+        # Calculate subtotal for the item
+        if cart_item.variant:
+            subtotal = cart_item.variant.product.price * cart_item.quantity  # Use variant's price
+        else:
+            subtotal = cart_item.product.price * cart_item.quantity  # Use product's price
 
-        #calculate total for the cart
+        # Calculate total for the cart
         cart = Cart.objects.get(user=request.user)
-        cartitems = CartItem.objects.filter(cart=cart)
-        total = sum(item.product.price * item.quantity for item in cartitems)
-        print(total)
+        cartitems = cart.items.all()
+        total = sum(
+            (item.variant.product.price * item.quantity if item.variant else item.product.price * item.quantity)
+            for item in cartitems
+        )
 
         return JsonResponse({'subtotal': subtotal, 'total': total})
-    
-    return JsonResponse({'error': 'Invalid request'}, status=400)
 
+    return JsonResponse({'error': 'Invalid request'}, status=400)
 def forgot_password(request):
     if request.method == 'POST':
         email = request.POST.get('email')
@@ -384,5 +442,135 @@ def change_password(request):
     
     return render(request, 'user/change_password.html')
 
+def checkout(request):
+    user = request.user
+
+    # Check if user has a cart
+    cart = Cart.objects.filter(user=user).first()
+    if not cart or cart.items.count() == 0:
+        messages.error(request, "Your cart is empty. Add items before proceeding to checkout.")
+        return redirect('view_cart')
+
+    # Fetch addresses and calculate cart total
+    addresses = user.addresses.all()
+
+    cart_items = cart.items.select_related('product', 'variant')  # Ensure variant is fetched
+
+    
+    total_price = sum(
+        (item.variant.product.price if item.variant else item.product.price) * item.quantity
+        for item in cart_items
+    )
+    
+    print(total_price)
+   
+    
+    if request.method == 'POST':
+        print('hi')
+        # Handle form submission
+        address_id = request.POST.get('address')
+        payment_method = request.POST.get('payment_method')
+
+        if not address_id or not payment_method:
+            messages.error(request, "Please select a valid address and payment method.")
+            return redirect('checkout')
+
+        # Validate address
+        address = get_object_or_404(Address, id=address_id, users=user)
+
+        # Create order
+        order = Order.objects.create(
+            user=user,
+            total_price=total_price,
+            street_address=address.street,
+            city=address.city,
+            district=address.district,
+            state=address.state,
+            pincode=address.pincode,
+            payment=payment_method,
+            payment_status='Pending',
+        )
+
+        # Create order items and update variant/product quantities
+        for item in cart_items:
+            print(item)
+            # Check variant stock if a variant exists
+            if item.variant:
+                if item.variant.quantity >= item.quantity:
+                    item.variant.quantity -= item.quantity
+                    print(item.variant.quantity)
+                    item.variant.save()
+                else:
+                    messages.error(request, f"Insufficient stock for {item.variant.product.name}.")
+                    return redirect('view_cart')
+                price = item.variant.product.price
+                print(price)
+            else:
+                # Check product stock
+                if item.product.quantity >= item.quantity:
+                    item.product.quantity -= item.quantity
+                    item.product.save()
+                else:
+                    messages.error(request, f"Insufficient stock for {item.product.name}.")
+                    return redirect('view_cart')
+                price = item.product.price
+                print(price)
+
+            # Create order item
+            OrderItem.objects.create(
+                order=order,
+                product=item.product,
+                variant=item.variant,
+                quantity=item.quantity,
+                price=price,
+            )
+
+        # Clear the cart
+        cart.items.all().delete()
+
+        messages.success(request, "Your order has been placed successfully!")
+        return render(request, 'order_success.html', {'orders': order})
+
+    # Render checkout page
+    context = {
+        'addresses': addresses,
+        'cart_items': cart_items,
+        'total': total_price,
+    }
+    return render(request, 'user/checkout.html', context)
+
+@login_required
+def wishlist(request):
+    user = request.user
+    wishlist, created = Wishlist.objects.get_or_create(user=user)
+    wishlist_items = wishlist.wishlist_items.all()
+    return render(request, 'user/wishlist.html', {'wishlist': wishlist, 'wishlist_items': wishlist_items})
 
 
+@login_required
+def add_to_wishlist(request, product_id):
+    if request.method == 'POST':
+        product = get_object_or_404(Product, id=product_id)
+        variant_id = request.POST.get('variant_id')
+        variant = ProductVariant.objects.filter(id=variant_id).first() if variant_id else None
+
+        wishlist, created = Wishlist.objects.get_or_create(user=request.user)
+        if not WishlistItem.objects.filter(wishlist=wishlist, product=product, variant=variant).exists():
+            WishlistItem.objects.create(wishlist=wishlist, product=product, variant=variant)
+            return JsonResponse({'status': 'success', 'message': f"{product.name} added to your wishlist."})
+        else:
+            return JsonResponse({'status': 'info', 'message': f"{product.name} is already in your wishlist."})
+
+    return JsonResponse({'status': 'error', 'message': 'Invalid request.'})
+
+
+@login_required
+def remove_from_wishlist(request, product_id):
+    print(request.method)
+    if request.method == 'POST' or request.method == 'GET' :
+        wishlist = Wishlist.objects.get(user=request.user)
+        item = get_object_or_404(WishlistItem, wishlist=wishlist, product__id=product_id)
+        item.delete()
+        return JsonResponse({'status': 'success', 'message': "Item removed from your wishlist."})
+
+    return JsonResponse({'status': 'error', 'message': 'Invalid request.'})

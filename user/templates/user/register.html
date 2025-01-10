@@ -24,7 +24,7 @@
                                 
                                 <div class="col-md-12 form-group p_star">
                                     <label for="id_name">Name</label>
-                                    {{ form.name }}
+                                    {{ form.username }}
                                 </div>
                             
                                 <div class="col-md-12 form-group p_star">
@@ -43,7 +43,10 @@
                                 </div>
                                 
                                 <button type="submit" value="submit" class="btn_3">Sign up</button>
-                                
+                               <div class ="social-login">
+                                    {% load socialaccount %}
+                                    <a href ="{% provider_login_url 'google' %}?next=/">Login with Google</a>
+                                </div>
                             </form>
                             
                     </div>

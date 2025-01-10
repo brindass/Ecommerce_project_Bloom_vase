@@ -1,3 +1,6 @@
+{% extends 'user/index.html' %}
+{% load static %}
+{% block body %}
 <h1 style="text-align: center; font-size: 2rem; color: #333; margin-bottom: 20px;">Edit Profile</h1>
         {% if messages %}
             {% for message in messages %}
@@ -8,8 +11,8 @@
     {% csrf_token %}
     
     <div style="margin-bottom: 15px;">
-        {{ form.name.label_tag }}
-        &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp{{ form.name }}
+        {{ form.username.label_tag }}
+        &nbsp &nbsp &nbsp  {{ form.username }}
     </div>
 
     <div style="margin-bottom: 15px;">
@@ -31,4 +34,5 @@
         Save
     </button>
 </form>
+{% endblock body %}
 

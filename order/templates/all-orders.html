@@ -1,0 +1,141 @@
+{% extends 'user/index.html' %}
+{% load static %}
+{% block body %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Success</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        p {
+            text-align: center;
+            font-size: 18px;
+        }
+
+        a {
+            display: block;
+            text-align: center;
+            margin: 20px 0;
+            font-size: 18px;
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        table {
+            width: 100%;
+            margin: 20px 0;
+            border-collapse: collapse;
+            background-color: #fff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+
+        td {
+            background-color: #f9f9f9;
+        }
+
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        td a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        td a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>Order Details</h1>
+    <p>Thank you for shopping with us. Your order has been placed and will be processed shortly.</p>
+    <a href="{% url 'home' %}">Back to Home</a>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Order ID</th>
+                <th>Total Price</th>
+                <th>Status</th>
+                <th>View Details</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in orders %}
+            <tr>
+                <td>{{ order.id }}</td>
+                <td>₹ {{ order.total_price }}</td>
+                <td>
+                {% if order.is_return %}
+                {% if order.return_status == 'Return Requested' %}
+                <p style="color:black" >{{ order.return_status }}</p>
+                {% elif order.return_status == 'Returned' %}
+                <p style="color:green" >{{ order.return_status }}</p>
+                {% else %}
+                <p style="color:red" >{{ order.return_status }}</p>
+                {% endif %}
+                {% elif order.cancellations.cancel_status == 'pending' %}
+                <p> cancellation request send</p>
+                {% elif order.is_cancelled %}
+                <p >cancelled </p>
+                {% else %}
+                <span class = 'badge bg-success'>{{order.status}}</span>
+                {% endif %}</p> 
+                </td>
+
+                <td><a href="{% url 'order_details' order.id %}">Details</a></td>
+                <td>{% if order.is_cancelled %}
+                    {% elif order.is_return %}
+                    {% else %}
+                        {% if order.status != 'Delivered' and order.status != 'cancellation requested' and order.status != 'Returned' %}
+                        <a href="{% url 'cancel_order' order.id %}">
+                            <button class="btn btn-outline-warning btn-sm">Cancel</button>
+                        </a>
+                        {% elif order.status == 'Delivered' %}
+                        <a href="{% url 'return_request' order.id %}">
+                            <button class="btn btn-outline-info btn-sm">Return</button>
+                        </a>
+                        {% endif %}
+                    {% endif %}</a></td>
+                {% comment %} {% if order.status != "Cancelled" and order.status != "Shipped" and order.status != "Delivered" %} 
+                <form method="POST" action="{% url 'cancel_order' order.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Cancel</button> {% endcomment %}
+                {% comment %} </form>
+            {% endif %} {% endcomment %}
+           
+
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+</body>
+</html>
+{% endblock body %}

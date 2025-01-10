@@ -1,0 +1,103 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cancel Order</title>
+    <style>
+        /* General Styles */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f4f4f9;
+        }
+
+        /* Container Styles */
+        .container {
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px 30px;
+            width: 400px;
+            text-align: center;
+        }
+
+        /* Header Styles */
+        h2 {
+            color: #d9534f;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+        }
+
+        /* Form Styles */
+        form {
+            margin-top: 10px;
+            text-align: left;
+        }
+
+        form p {
+            margin: 10px 0;
+            font-size: 14px;
+            color: #555;
+        }
+
+        input, select, textarea {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        /* Button Styles */
+        button {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin: 10px 10px 0 10px;
+            background-color: #d9534f;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #c9302c;
+        }
+
+        /* Back Link Styles */
+        .back-link {
+            display: inline-block;
+            margin-top: 15px;
+            text-decoration: none;
+            font-size: 14px;
+            color: #007bff;
+            transition: color 0.3s ease;
+        }
+
+        .back-link:hover {
+            color: #0056b3;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Cancel Order #{{ order.id }}</h2>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-danger">Submit Cancellation</button>
+        </form>
+        <a href="{% url 'order_success' %}" class="back-link">Back to Orders</a>
+    </div>
+</body>
+</html>
+

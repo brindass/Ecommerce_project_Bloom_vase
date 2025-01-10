@@ -22,10 +22,13 @@ from . import settings
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    
     path('user/',include('user.urls')),
     path('',include('product.urls')),
-    path('my_admin/',include('my_admin.urls')),
     # path('',views.loginpage,name='login'),
+    path('my_admin/',include('my_admin.urls')),
+    path('order/', include('order.urls')),
+    path('accounts/', include('allauth.urls')),
     # path('home/',views.Homepage,name='home'),
     # path('logout/',views.Logoutpage,name='logout'),
     # path('signup/',views.signup_page,name='signup'),

@@ -6,6 +6,11 @@
         <div class="cart_inner">
             <div class="table-responsive">
                 <table class="table">
+                     {% comment %} {% if messages %}
+            {% for message in messages %}
+            <p style="color: red; text-align: center;">{{ message }}</p>
+            {% endfor %}
+            {% endif %}  {% endcomment %}
                     <thead>
                         <tr>
                             <th scope="col">Product</th>
@@ -21,39 +26,52 @@
                             <td>
                                 <div class="media">
                                     <div class="d-flex">
-                                        <img src="{{ item.product.base_image.url }}" alt="" />
+                                        <img src="{{ item.image }}" alt="{{ item.variant.name }}" />
                                     </div>
                                     <div class="media-body">
-                                        <p>{{ item.product.name }}</p>
+                                         {% if item.variant %}
+                                        <p>{{ item.variant.product.name }}</p>
+                                        {% else %} 
+                                       <p>{{ item.product.name }}</p>
+                                        {% endif %}
+                                        {% if item.variant %}
+                                            <small style="color: gray;">Variant: {{ item.variant.color }}</small>
+                                        {% endif %}
                                     </div>
                                 </div>
                             </td>
                             <td>
+                                {% if item.variant %}
+                                <h5>₹ {{ item.variant.product.price }}</h5>
+                                {% else %} 
                                 <h5>₹ {{ item.product.price }}</h5>
+                                {% endif %}
                             </td>
                             <td>
-                              <div class="quantity-toggle" style="display: flex; align-items: center; gap: 8px;">
-                                <button class="toggle-btn minus" onclick="updateQuantity({{ item.id }}, -1)">
-                                  <i class="ti-minus"></i>
-                                </button>
-                                <div class="quantity-display" id="quantity-{{ item.id }}">
-                                  {{ item.quantity }}
+                                <div class="quantity-toggle" style="display: flex; align-items: center; gap: 8px;">
+                                    <button class="toggle-btn minus" onclick="updateQuantity({{ item.id }}, -1)">
+                                        <i class="ti-minus"></i>
+                                    </button>
+                                    <div class="quantity-display" id="quantity-{{ item.id }}" data-max="{{ item.product.quantity }}">
+                                        {{ item.quantity }}
+                                    </div>
+                                    <button class="toggle-btn plus" onclick="updateQuantity({{ item.id }}, 1)">
+                                        <i class="ti-plus"></i>
+                                    </button>
                                 </div>
-                                <button class="toggle-btn plus" onclick="updateQuantity({{ item.id }}, 1)" min = "1" max="{{ item.product.quantity }}">
-                                  <i class="ti-plus"></i>
-                                </button>
-                              </div>
                             </td>
                             <td>
-                              <h5 id="subtotal-{{ item.id }}">₹ {{ item.subtotal }}</h5>
+                                <h5 id="subtotal-{{ item.id }}">₹ {{ item.subtotal }}</h5>
                             </td>
                             <td>
-                                <a href="{% url 'remove_from_cart' item.id %}"><button 
-                                    style="background-color: red; color: white; border: none; border-radius: 5px; padding: 5px 10px; cursor: pointer;" 
-                                   > Remove</button> 
+                                <a href="{% url 'remove_from_cart' item.id %}">
+                                    <button style="background-color: red; color: white; border: none; border-radius: 5px; padding: 5px 10px; cursor: pointer;">
+                                        Remove
+                                    </button>
+                                </a>
                             </td>
-                            
                         </tr>
+                        
                         {% endfor %}
                         <tr>
                             <td></td>
@@ -69,7 +87,7 @@
                     </tbody>
                 </table>
                 <div class="checkout_btn_inner float-right">
-                    <a class="btn_1 checkout_btn_1" href="#">Proceed to checkout</a>
+                    <a class="btn_1 checkout_btn_1" href="{% url 'checkout' %}">Proceed to checkout</a>
                 </div>
             </div>
         </div>
@@ -109,38 +127,45 @@
   }
 </style>
 <script>
-  function updateQuantity(itemId, change) {
-    // Get the current quantity
-    const quantityDisplay = document.getElementById(`quantity-${itemId}`);
-    const currentQuantity = parseInt(quantityDisplay.textContent);
-
-    // Update only if quantity is 1 or higher
-    if (currentQuantity + change >= 1) {
+    function updateQuantity(itemId, change) {
+        // Get the current quantity and maximum allowed quantity
+        const quantityDisplay = document.getElementById(`quantity-${itemId}`);
+        const currentQuantity = parseInt(quantityDisplay.textContent);
+        const maxQuantity = parseInt(quantityDisplay.getAttribute("data-max")); // Maximum quantity from a custom attribute
+    
+        // Calculate the new quantity
         const newQuantity = currentQuantity + change;
-        quantityDisplay.textContent = newQuantity;  // Update display before server confirmation
-
-        // AJAX request to update quantity on server
-        fetch("{% url 'update_cart_item' %}", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRFToken": "{{ csrf_token }}",  // Include CSRF token for security
-            },
-            body: JSON.stringify({
-                item_id: itemId,
-                quantity: newQuantity,
+    
+        // Update only if the new quantity is within valid limits
+        if (newQuantity >= 1 && newQuantity <= maxQuantity) {
+            quantityDisplay.textContent = newQuantity;  // Update display before server confirmation
+    
+            // AJAX request to update quantity on the server
+            fetch("{% url 'update_cart_item' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}",  // Include CSRF token for security
+                },
+                body: JSON.stringify({
+                    item_id: itemId,
+                    quantity: newQuantity,
+                })
             })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.subtotal) {
-                document.getElementById(`subtotal-${itemId}`).innerText = `₹ ${data.subtotal}`;
-                document.getElementById("cart-total").innerText = `₹ ${data.total}`; // Update cart total
-            }
-        })
-        .catch(error => console.error("Error:", error));
+            .then(response => response.json())
+            .then(data => {
+                if (data.subtotal) {
+                    // Update subtotal and total amounts in the UI
+                    document.getElementById(`subtotal-${itemId}`).innerText = `₹ ${data.subtotal}`;
+                    document.getElementById("cart-total").innerText = `₹ ${data.total}`;
+                }
+            })
+            .catch(error => console.error("Error:", error));
+        } else if (newQuantity > maxQuantity) {
+            alert("Quantity exceeds available stock.");
+        }
     }
-}
+    
 
 </script>
 {% endblock body %}

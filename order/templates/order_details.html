@@ -1,0 +1,104 @@
+{% extends 'user/index.html' %}
+{% load static %}
+{% block body %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Details</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h1>Order Details</h1>
+    {% if order %}
+        <table>
+            <tr>
+                <th>Order ID</th>
+                <td>{{ order.id }}</td>
+            </tr>
+            <tr>
+                <th>Total Price</th>
+                <td>₹{{ order.total_price }}</td>
+            </tr>
+            <tr>
+                <th>Payment Method</th>
+                <td>{{ order.payment }}</td>
+            </tr>
+            <tr>
+                <th>Payment Status</th>
+                <td>{{ order.payment_status }}</td>
+            </tr>
+            <tr>
+                <th>Shipping Address</th>
+                <td>
+                    {{ order.street_address }},<br>
+                    {{ order.city }}, {{ order.district }},<br>
+                    {{ order.state }}, {{ order.pincode }}
+                </td>
+            </tr>
+            <tr>
+                <th>Status</th>
+                <td>{% if order.is_return %}
+                    {% if order.return_status == 'Return requested' %}
+                        <p style="color:black">{{ order.return_status }}</p>
+                    {% elif order.return_status == 'Returned' %}
+                        <p style="color:green">{{ order.return_status }}</p>
+                    {% else %}
+                        <p style="color:red">{{ order.return_status }}</p>
+                    {% endif %}
+                {% elif order.is_cancelled %}
+                    <p>cancelled</p>
+                {% else %}
+                <span class="badge bg-success">{{ order.status }}</span>
+                {% endif %}</p>
+</td>
+            </tr>
+        </table>
+        <h2>Order Items</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Quantity</th>
+                    <th>Price</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in order.orderitem_set.all %}
+                    <tr>
+                        <td>
+                            {% if item.variant %}
+                            {{ item.variant.product.name }}
+                            {% else %}
+                            {{ item.product.name }}
+                            {% endif %}
+                            {% if item.variant %}
+                            <small style="color: gray;">Variant: {{ item.variant.color }}</small>
+                        {% endif %}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td>₹{{ item.price }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No order details available.</p>
+    {% endif %}
+</body>
+</html>
+
+{% endblock body %}

@@ -1,0 +1,213 @@
+{% extends 'user/index.html' %}
+{% load static %}
+{% block body %}
+<h2 class="wishlist-heading">Your Wishlist</h2>
+<div id="alert-box" class="alert-box"></div> 
+<div class="wishlist-container">
+    <ul class="wishlist-items">
+        {% for item in wishlist_items %}
+        <li class="wishlist-item">
+            <div class="wishlist-product">
+                <!-- Product Image -->
+                <div class="wishlist-image">
+                    <a href="{% url 'product_details' item.product.id%}">
+                    <img src="{{ item.product.base_image.url }}" alt="{{ item.product.name }}">
+                </div>
+                <!-- Product Details -->
+                <div class="wishlist-details">
+                    <strong class="product-name">{{ item.product.name }}</strong>
+                    {% if item.variant %}
+                    <p class="product-variant">Color: {{ item.variant.color }}</p>
+                    {% endif %}
+                    <div class="text-lg text-medium text-muted">₹{{item.product.price}}</div>
+                </div>
+                <!-- Remove Button -->
+                <div class="wishlist-actions">
+                    {% if item.product %}
+                        <a href="#" class="remove-btn" 
+                            onclick="removeFromWishlist({{ item.product.id }})">Remove</a>
+                    {% endif %}
+                </div>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    <a href="{% url 'home' %}" class="back-home-btn">Back to Home</a>
+</div>
+<script>
+    function removeFromWishlist(productId) {
+        // Perform AJAX POST request to remove item from wishlist
+        fetch(`{% url 'remove_from_wishlist' 0 %}`.replace(0, productId), {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Show success alert
+                showAlert(data.message, 'success');
+                // Optionally remove the item from the DOM
+                document.querySelector(`[onclick="removeFromWishlist(${productId})"]`)
+                    .closest('.wishlist-item')
+                    .remove();
+            } else {
+                showAlert(data.message, 'error');
+            }
+        })
+        .catch(error => {
+            showAlert('Something went wrong.', 'error');
+        });
+    }
+
+    function showAlert(message, type) {
+        const alertBox = document.getElementById('alert-box');
+        alertBox.innerHTML = `<div class="alert ${type}">${message}</div>`;
+        alertBox.style.display = 'block';
+        setTimeout(() => {
+            alertBox.style.display = 'none';
+        }, 3000);
+    }
+</script>
+
+<!-- CSS -->
+<style>
+    .wishlist-heading {
+        text-align: center;
+        font-size: 2rem;
+        margin-bottom: 20px;
+        color: #333;
+    }
+
+    .wishlist-container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: #f9f9f9;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .wishlist-items {
+        list-style: none;
+        padding: 0;
+    }
+
+    .wishlist-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #ddd;
+        padding-bottom: 15px;
+        position: relative; 
+    }
+
+    .wishlist-product {
+        display: flex;
+        align-items: center;
+        width: 100%;
+    }
+
+    .wishlist-image img {
+        width: 100px;
+        height: 100px;
+        object-fit: cover;
+        border-radius: 8px;
+        margin-right: 20px;
+    }
+
+    .wishlist-details {
+        flex: 1;
+    }
+
+    .product-name {
+        font-size: 1.2rem;
+        color: #333;
+        margin-bottom: 5px;
+    }
+
+    .product-variant {
+        font-size: 1rem;
+        color: #777;
+    }
+
+    .wishlist-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        margin-left: 600px;
+        position: absolute;
+    }
+
+    .wishlist-actions .remove-btn {
+        color: #ff6b6b;
+        text-decoration: none;
+        font-size: 1rem;
+        border: 1px solid #ff6b6b;
+        padding: 5px 10px;
+        border-radius: 4px;
+        transition: background-color 0.3s, color 0.3s;
+    }
+
+    .wishlist-actions .remove-btn:hover {
+        background-color: #ff6b6b;
+        color: #fff;
+
+    }
+
+    .back-home-btn {
+        display: inline-block;
+        margin-top: 20px;
+        text-align: center;
+        background-color: #96b3a3;
+        color: white;
+        text-decoration: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        transition: background-color 0.3s ease;
+    }
+
+    .back-home-btn:hover {
+        background-color: #0056b3;
+    }
+    .alert-box {
+        position: fixed;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1000;
+        display: none;
+    }
+
+    .alert {
+        padding: 10px 20px;
+        border-radius: 5px;
+        font-size: 1rem;
+        text-align: center;
+        animation: slideIn 0.3s ease-in-out;
+    }
+
+    .alert.success {
+        background-color: #4CAF50;
+        color: #fff;
+    }
+
+    .alert.error {
+        background-color: #F44336;
+        color: #fff;
+    }
+
+    @keyframes slideIn {
+        from {
+            transform: translateX(-50%) translateY(-20px);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+    }
+</style>
+{% endblock body %}

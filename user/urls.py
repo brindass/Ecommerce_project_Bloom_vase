@@ -1,8 +1,14 @@
 from django.urls import path
-from .views import test, register, user_login, home, user_logout, verify_otp, resend_otp, user_profile, edit_profile, add_address, edit_address, delete_address, add_to_cart, view_cart, remove_from_cart, update_cart_item, forgot_password, verify_forgot_password_otp, reset_password, change_password
+from .views import (
+    test, register, user_login, home, user_logout, verify_otp, resend_otp,
+    user_profile, edit_profile, add_address, edit_address, delete_address,
+    add_to_cart, view_cart, remove_from_cart, update_cart_item, forgot_password,
+    verify_forgot_password_otp, reset_password, change_password, checkout, wishlist,
+    add_to_wishlist, remove_from_wishlist
+)
 from user import views
 urlpatterns =[
-    # path('',home,name='home'),
+    path('',home,name='home'),
     path('register/',register,name = 'register'),
     path('verify-otp/<int:user_id>/', verify_otp, name='verify_otp'),  
     path('resend-otp/<int:user_id>/', resend_otp, name='resend_otp'),
@@ -20,9 +26,11 @@ urlpatterns =[
     path('forgot_password/', forgot_password, name ='forgot_password'),
     path('verify_forgot_password_otp/<int:user_id>', verify_forgot_password_otp, name ='verify_forgot_password_otp'),
     path('reset_password/<int:user_id>', reset_password, name ='reset_password'),
-    path('change_password/', change_password, name ='change_password')
-    
-
+    path('change_password/', change_password, name ='change_password'),
+    path('checkout/', checkout, name='checkout'),
+    path('wishlist/', wishlist, name= 'wishlist'),
+    path('wishlist/add/<int:product_id>/', add_to_wishlist, name='add_to_wishlist'),
+    path('wishlist/remove/<int:product_id>/', remove_from_wishlist, name='remove_from_wishlist'),
 
 ]
     

@@ -1,0 +1,142 @@
+{% extends 'my_admin/admin_index.html' %}
+{% load static %}
+{% block head %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+{% endblock head %}
+{% block body %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<div class="container mt-5" style="background-color: white; color: black; padding: 20px; border-radius: 8px;">
+    <h1 style="color: black;">Orders List</h1>
+    <form method="GET" action="{% url 'list_order' %}" style="margin-bottom: 20px;">
+        <input type="text" name="q" value="{{ search_query }}" placeholder="Search orders..." style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;" />
+        <button type="submit" style="padding: 8px 12px; background-color: #007bff; color: white; border: none; border-radius: 4px;">Search</button>
+    </form>
+    
+    <table class="table table-bordered">
+        <thead style="background-color: #f8f9fa; color: black;">
+            <tr>
+                <th>Order ID</th>
+                <th>Product</th>
+                <th>Buyer</th>
+                <th>Date</th>
+                <th>Quantity</th>
+                <th>Status</th>
+                <th>Payment</th>
+                <th>Payment Status</th>
+                <th>Total Price</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in orders %}
+                {% for orderitem in order.orderitem_set.all %}
+                    <tr>
+                        <td>{{ order.id }}</td>
+                        <td>
+                            {% if orderitem.variant %}
+                            {{ orderitem.variant.product.name }}
+                            {% else %}
+                            {{ orderitem.product.name }}
+                            {% endif %}
+                            {% if orderitem.variant %}
+                            <small style="color: gray;">Variant: {{ orderitem.variant.color }}</small>
+                        {% endif %}
+                            </td>
+                        <td>{{ order.user.username }}</td>
+                        <td>{{ order.created_at }}</td>
+                        <td>{{ orderitem.quantity }}</td>
+                        <td>
+                            {% if order.return_status == 'Return Requested' %}
+                                <select class="form-control status-select" data-order-id="{{ order.id }}" style="color: black;">
+                                    {% for status_choice in order.RETURN_STATUS_CHOICES %}
+                                        <option value="{{ status_choice.0 }}" {% if status_choice.0 == order.return_status %} selected {% endif %}>
+                                            {{ status_choice.1 }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            {% else %}
+                                {% if order.is_cancelled %}
+                                    <p style="color:red;">Cancelled</p>
+                                {% elif order.return_status == 'Returned' %}
+                                    <p style="color:green;">Returned</p>
+                                {% elif order.return_status == 'Rejected' %}
+                                    <p style="color:red;">Rejected</p>
+                                {% elif order.status == 'Delivered' %}
+                                    <p style="color:rgb(0, 255, 38);">Delivered</p>
+                                {% else %}
+                                    <select class="form-select status-select" data-order-id="{{ order.id }}" style="color: black;">
+                                        {% for choice in order.STATUS_CHOICES %}
+                                            <option value="{{ choice.0 }}" {% if choice.0 == order.status %}selected{% endif %}>
+                                                {{ choice.1 }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                {% endif %}
+                            {% endif %}
+                        </td>
+                        <td>{{ order.payment }}</td>
+                        <td>{{ order.payment_status }}</td>
+                        <td>₹{{ order.total_price }}</td>
+                        <td>
+                            <a href="{% url 'admin_order_details' order.id %}" class="btn btn-primary btn-sm">View Details</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            {% endfor %}
+        </tbody>
+    </table>
+    <nav aria-label="...">
+        <ul class="pagination">
+            {% if orders.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ orders.previous_page_number }}">Previous</a>
+            </li>
+            {% endif %}
+            {% for i in orders.paginator.page_range %}
+                {% if orders.number == i %}
+                <li class="page-item active" aria-current="page">
+                    <a class="page-link" href="#">{{ i }}</a>
+                </li>
+                {% else %}
+                <li class="page-item"><a class="page-link" href="?page={{ i }}">{{ i }}</a></li>
+                {% endif %}
+            {% endfor %}
+            {% if orders.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ orders.next_page_number }}">Next</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('.status-select').change(function() {
+            var newStatus = $(this).val();
+            var orderId = $(this).data('order-id');
+            var csrfToken = '{{ csrf_token }}'; // Ensure CSRF token is included in the AJAX request
+
+            $.ajax({
+                url: '', // The URL is the same as the current page
+                method: 'POST',
+                data: {
+                    'csrfmiddlewaretoken': csrfToken,
+                    'order_id': orderId,
+                    'new_status': newStatus
+                },
+                success: function(response) {
+                    if (response.success) {
+                        alert('Status updated successfully');
+                    } else {
+                        alert('Error updating status: ' + response.error);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error updating status:', error);
+                }
+            });
+        });
+    });
+</script>
+{% endblock body %}

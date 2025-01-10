@@ -85,9 +85,24 @@
                                 {% endfor %}
                             </select>
                             {{ form.discount.label_tag }}<input type="number" name="discount" id="productDiscount" class="form-control">
+                            
                             {{ form.base_image.label_tag }}<input type="file" name="base_image" id="productImage" class="form-control">
+                            <h5>Product Variants</h5>
+                                {{ formset.management_form }}
+                                <div id="variants">
+                                    {% for form in formset %}
+                                        <div class="variant">
+                                            {{ form.as_p }}
+                                            <button type="button" class="remove-variant">Remove</button>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                                <button type="button" id="add-variant">Add Variant</button>
+                                {% comment %} <button type="submit" class="btn btn-primary">Save</button> {% endcomment %}
+
                         </div>
                     </div>
+                    
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                         <button type="submit" class="btn btn-primary" id="saveChangesButton">Save changes</button>
@@ -98,6 +113,14 @@
     </div>
 
 </div>
+<script>
+    document.getElementById('add-variant').addEventListener('click', function() {
+        const variants = document.getElementById('variants');
+        const newVariant = variants.firstElementChild.cloneNode(true);
+        newVariant.querySelectorAll('input').forEach(input => input.value = '');
+        variants.appendChild(newVariant);
+    });
+    </script>
 
 <!-- Add Bootstrap, jQuery, and Popper.js (necessary for Bootstrap modals to work) -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -124,5 +147,14 @@ function openUpdateModal(id, name, quantity, size, price, description, category,
     
     $('#exampleModalCenter').modal('show');  // Show the modal
 }
+
+{% comment %} document.getElementById('add-variant').addEventListener('click', function() {
+    const variants = document.getElementById('variants');
+    const newVariant = variants.firstElementChild.cloneNode(true);
+    newVariant.querySelectorAll('input').forEach(input => input.value = '');
+    variants.appendChild(newVariant);
+}); {% endcomment %}
+
 </script>
+
 {% endblock body %}

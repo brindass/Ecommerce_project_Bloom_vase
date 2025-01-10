@@ -1,7 +1,7 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.core.paginator import Paginator
-from .models import Product, ProductImage, Category
-
+from .models import Product, ProductImage, Category, ProductVariant
+from user.models import Wishlist, WishlistItem
 # Create your views here.
 
 def list_product(request):
@@ -22,12 +22,51 @@ def test(request):
     return render(request,'product/test.html')
 
 def product_details(request,pk):
-    product = Product.objects.get(id=pk)
+    product = Product.objects.get(id = pk)
     images = ProductImage.objects.filter(product = product)
+    # all_products = []
+    variants = product.variants.all() 
+
+    product_in_wishlist = False
+    if request.user.is_authenticated:
+        wishlist = Wishlist.objects.filter(user=request.user).first()
+        if wishlist:
+            product_in_wishlist = WishlistItem.objects.filter(wishlist=wishlist, product=product).exists()
+    
+    
+    # variants_images = ProductImage.objects.filter(product__in=product_variants).first()
+    # if product_variants:
+    #     all_products = [product] + list(product_variants)
+
+    # has_variants = variants.exists()
+    print(variants,'variant') 
+    # related_products = Product.objects.filter(category=product.category).exclude(pk=pk)
     context = {'product':product,
-               'images':images}
-    print(images,product)
+               
+               'images':images,
+               'variants': variants,
+               'product_in_wishlist': product_in_wishlist,
+            #    'variants_images': variants_images,
+            #    'related_products': related_products
+               'page':"product_page",
+               
+               }
+    # print(images,product,has_variants)
     return render(request,'product/product_details.html',context)
+
+
+
+def variant_details(request, variant_id):
+    variant = ProductVariant.objects.get(id=variant_id)
+    other_variants = ProductVariant.objects.filter(product=variant.product).exclude(id=variant_id)
+
+    context = {
+        'variant': variant,
+        'other_variants': other_variants,
+        'page':"variants_page"
+    }
+    return render(request, 'product/variant_details.html', context)
+
 
 
 def product_list_search(request):

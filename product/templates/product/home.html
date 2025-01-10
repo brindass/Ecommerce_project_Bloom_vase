@@ -92,6 +92,7 @@
                 <div class="col-xl-4 col-lg-4 col-md-6 col-sm-6">
                     <div class="single-new-pro mb-30 text-center">
                         <div class="product-img">
+                            <a href="{% url 'product_details' product.id%}">
                             <img src="{{product.base_image.url}}" alt="">
                         </div>
                         <div class="product-caption">
@@ -124,14 +125,16 @@
                     <div class="col-xl-4 col-lg-4 col-md-6 col-sm-6">
                         <div class="single-popular-items mb-50 text-center">
                             <div class="popular-img">
-                                <a href="{% url 'product_details' product.id%}">
+                                <a href="{% url 'product_details' product.id %}">
                                 <img src="{{ product.base_image.url }}" alt="">
                                 <a/>
                                 <div class="img-cap">
                                     <span>Add to cart</span>
                                 </div>
                                 <div class="favorit-items">
-                                    <span class="flaticon-heart"></span>
+                                    {% comment %} <a href="{% url 'add_to_wishlist' product.id %}"> {% endcomment %}
+                                        <span class="flaticon-heart"></span>
+                                    </a>
                                 </div>
                             </div>
                             <div class="popular-caption">

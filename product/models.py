@@ -21,8 +21,13 @@ class Product(models.Model):
     size = models.CharField(max_length=20,choices=CHOICES,default = 'small')
     category = models.ForeignKey('Category',on_delete=models.CASCADE)
     soft_deleted = models.BooleanField(default=False)
+    # parent_product = models.ForeignKey('self', on_delete=models.CASCADE,null=True,blank=True,related_name='variants')
+    # color = models.CharField(max_length=50,null=True,blank=True)
+
 
     def __str__(self):
+        # if self.parent_product:
+        #     return f"{self.parent_product.name} - {self.color}"
         return self.name
 
 class Category(models.Model):
@@ -48,3 +53,12 @@ class Product_reviews(models.Model):
     def __str__(self):
         return f"{self.user.name} {self.product.name}"
     
+
+class ProductVariant(models.Model):
+    product = models.ForeignKey('Product', on_delete=models.CASCADE, related_name='variants')
+    color = models.CharField(max_length=50)
+    quantity = models.PositiveIntegerField()
+    variant_image = models.ImageField(upload_to='products/variants', null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.product.name} - {self.color}"

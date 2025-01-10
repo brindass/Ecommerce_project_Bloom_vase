@@ -1,0 +1,98 @@
+{% extends 'user/index.html' %}
+{% block body %}
+{% load static %}
+
+<section class="product-details spad" style="margin-top: 100px;">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-6 col-md-6">
+                <div class="product__details__pic">
+                    <div class="product__details__pic__item zoom-container">
+                        {% if images %}
+                        <img id="main-image" class="product__details__pic__item--large zoom" style="width: 98%;"
+                            src="{{ images.0.image.url }}" alt="">
+                        {% endif %}
+                    </div>
+                    <div class="product__details__pic__slider owl-carousel" style='margin-top: 15px'>
+                        {% for image in images %}
+                        <img class="thumbnail-image" data-imgbigurl="{{ image.image.url }}"
+                            src="{{ image.image.url }}" alt="" style="cursor: pointer;">
+                        {% endfor %}
+                    </div>
+                    {% if variant.variant_image %}
+                    <img class="product__details__pic__item--large" src="{{ variant.variant_image.url }}" alt="{{ variant.color }}" style="width: 98%;">
+                    {% endif %}
+                </div>
+                <!-- Section for other variants -->
+                <div class="product__details__pic__variants">
+                    <h5>Other Variants</h5>
+                    <div class="variant-images">
+                        {% for other_variant in other_variants %}
+                        <a href="{% url 'variant_details' other_variant.id %}">
+                            <img src="{{ other_variant.variant_image.url }}" alt="{{ other_variant.color }}" style="width: 75px; height: 75px; margin: 5px; border: 1px solid #ddd;">
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 col-md-6">
+                <div class="product__details__text">
+                    <h3>{{ variant.product.name }} - {{ variant.color }}</h3>
+                    <div class="product__details__price">₹ {{ variant.product.price }}</div>
+                    <p>{{ variant.product.description }}</p>
+                    <ul>
+                        {% comment %} <li><b>Available Quantity</b>: {{ variant.quantity }}</li> {% endcomment %}
+                        <li><b>Color</b>: {{ variant.color }}</li>
+                    </ul>
+                    <div>
+                        <form method="POST" action="{% url 'add_to_cart' variant.id %}">
+                            {% csrf_token %}
+                            <!-- Hidden field for variant ID -->
+                            <input type="hidden" name="variant_id" value="{{ variant.id }}">
+                            <input type="hidden" name="page" value="{{page}}">
+                            
+                            <button type="submit" 
+                                style="
+                                    background-color: #FF5722;
+                                    color: white;
+                                    padding: 6px 12px;
+                                    font-size: 16px;
+                                    margin-top:23px;
+                                    border: none;
+                                    border-radius: 5px;
+                                    cursor: pointer;
+                                    transition: background-color 0.3s ease;
+                                ">
+                                ADD TO CART
+                            </button>
+                        </form>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- Include the necessary scripts -->
+<script src="{% static 'js/bootstrap.min.js' %}"></script>
+<script src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
+<script src="{% static 'js/jquery-ui.min.js' %}"></script>
+<script src="{% static 'js/jquery.nice-select.min.js' %}"></script>
+<script src="{% static 'js/jquery.slicknav.js' %}"></script>
+<script src="{% static 'js/owl.carousel.min.js' %}"></script>
+<script src="{% static 'js/product.js' %}"></script>
+<script src="{% static 'js/main.js' %}"></script>
+<script src="{% static 'js/mixitup.min.js' %}"></script>
+
+<script>
+    // Function to change the main image when a thumbnail is clicked
+    document.querySelectorAll('.thumbnail-image').forEach(item => {
+        item.addEventListener('click', event => {
+            // Get the data-imgbigurl attribute value
+            const newImageUrl = item.getAttribute('data-imgbigurl');
+            // Update the main image src attribute
+            document.getElementById('main-image').src = newImageUrl;
+        });
+    });
+</script>
+{% endblock body %}
