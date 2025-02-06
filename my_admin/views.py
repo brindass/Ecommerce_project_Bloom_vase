@@ -641,7 +641,7 @@ def apply_coupon(request):
 
 
 def delete_coupon(request, pk):
-    if request.user.is_staff:
+    if 'admin' in request.session:
         coupon = get_object_or_404(Coupon, id=pk)
         coupon.delete()
         messages.success(request, "Coupon deleted successfully!")
