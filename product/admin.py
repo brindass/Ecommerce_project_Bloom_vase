@@ -1,5 +1,6 @@
 from django.contrib import admin
 from .models import *
+from order.models import Order
 # Register your models here.
 
 class ProductVariantInline(admin.TabularInline):
@@ -16,3 +17,7 @@ class ProductAdmin(admin.ModelAdmin):
 admin.site.register(Product, ProductAdmin)
 admin.site.register(Category)
 admin.site.register(ProductImage)
+admin.site.register(ProductVariant)
+admin.site.register(Order)
+
+

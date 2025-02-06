@@ -37,9 +37,36 @@
             </div>
             <div class="col-lg-6 col-md-6">
                 <div class="product__details__text">
+                    {% comment %} <h1>{{va}}</h1> {% endcomment %}
                     <h3>{{ variant.product.name }} - {{ variant.color }}</h3>
+                    <div class="product__details__rating">
+                        <i class="fa fa-star"></i>
+                        <i class="fa fa-star"></i>
+                        <i class="fa fa-star"></i>
+                        <i class="fa fa-star"></i>
+                        <i class="fa fa-star-half-o"></i>
+                        <span>(18 reviews)</span>
                     <div class="product__details__price">₹ {{ variant.product.price }}</div>
+
+                    {% if discounted_price is not none %}
+                    <!-- Display the discounted price after offer -->
+                    <span class="discounted-price">Discounted Price: ₹{{ discounted_price }}</span>
+                    <span>qty:{{variant.quantity}}</span>
+                    {% endif %}
                     <p>{{ variant.product.description }}</p>
+                    <div class="wishlist-btn-container" data-product-id="{{ variant.product.id }}">
+                        <div class="d-inline-flex align-items-center p-2 wishlist-btn" style="cursor: pointer;">
+                            {% if product_in_wishlist %}
+                            <button class="remove-from-wishlist" style="background-color: #ff6f61; color: white;">
+                                <i class="fas fa-heart"></i> Remove from Wishlist
+                            </button>
+                            {% else %}
+                            <button class="add-to-wishlist" style="background-color: #ccc; color: black;">
+                                <i class="fas fa-heart"></i> Add to Wishlist
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
                     <ul>
                         {% comment %} <li><b>Available Quantity</b>: {{ variant.quantity }}</li> {% endcomment %}
                         <li><b>Color</b>: {{ variant.color }}</li>
@@ -92,6 +119,50 @@
             const newImageUrl = item.getAttribute('data-imgbigurl');
             // Update the main image src attribute
             document.getElementById('main-image').src = newImageUrl;
+        });
+    });
+
+    $(document).ready(function () {
+        $('.wishlist-btn-container').on('click', '.add-to-wishlist, .remove-from-wishlist', function (e) {
+            e.preventDefault();
+    
+            const button = $(this);
+            const productId = button.closest('.wishlist-btn-container').data('product-id');
+            const isAdding = button.hasClass('add-to-wishlist');
+            const url = isAdding 
+                ? `{% url 'add_to_wishlist' 0 %}`.replace('0', productId) 
+                : `{% url 'remove_from_wishlist' 0 %}`.replace('0', productId);
+    
+            $.ajax({
+                url: url,
+                type: 'POST',
+                data: {
+                    'csrfmiddlewaretoken': '{{ csrf_token }}',
+                },
+                success: function (response) {
+                    if (response.status === 'success' || response.status === 'info') {
+                        // Toggle button state
+                        if (isAdding) {
+                            button.removeClass('add-to-wishlist').addClass('remove-from-wishlist').text('Remove from Wishlist').css({
+                                backgroundColor: '#ff6f61',
+                                color: 'white'
+                            });
+                        } else {
+                            button.removeClass('remove-from-wishlist').addClass('add-to-wishlist').text('Add to Wishlist').css({
+                                backgroundColor: '#ccc',
+                                color: 'black'
+                            });
+                        }
+                        // Display a message (optional)
+                        alert(response.message);
+                    } else {
+                        alert(response.message || 'An error occurred.');
+                    }
+                },
+                error: function () {
+                    alert('Something went wrong. Please try again later.');
+                }
+            });
         });
     });
 </script>

@@ -28,10 +28,10 @@
                     <div class="product__details__pic__item zoom-container">
                         <img id="main-image" class="product__details__pic__item--large zoom" style="width: 98%;"
                             src="{{ product.base_image.url }}" alt="NO">
-                        {% comment %} {% if images %}
+                       {% comment %} {% if images %}
                         <img id="main-image" class="product__details__pic__item--large zoom" style="width: 98%;"
                             src="{{ product.base_image.url }}" alt="NO">
-                        {% endif %}   {% endcomment %}
+                        {% endif %}  {% endcomment %}
                     </div>
                      <div class="product__details__pic__slider owl-carousel" style='margin-top: 15px'>
                         {% for image in images %}
@@ -53,6 +53,10 @@
                         <span>(18 reviews)</span>
                     </div>
                     <div class="product__details__price">₹ {{product.price}}</div>
+                    {% if discounted_price is not none %}
+                    <!-- Display the discounted price after offer -->
+                    <span class="discounted-price">Discounted Price: ₹{{ discounted_price }}</span>
+                    {% endif %}
                     <div class="wishlist-btn-container" data-product-id="{{ product.id }}">
                         <div class="d-inline-flex align-items-center p-2 wishlist-btn" style="cursor: pointer;">
                             {% if product_in_wishlist %}
@@ -177,11 +181,11 @@ $(document).ready(function () {
         e.preventDefault();
 
         const button = $(this);
-        const productId = button.closest('.wishlist-btn-container').data('product-id');
+        const variantId = button.closest('.wishlist-btn-container').data('variant-id');
         const isAdding = button.hasClass('add-to-wishlist');
         const url = isAdding 
-            ? `{% url 'add_to_wishlist' 0 %}`.replace('0', productId) 
-            : `{% url 'remove_from_wishlist' 0 %}`.replace('0', productId);
+            ? `{% url 'add_to_wishlist' 0 %}`.replace('0', variantId) 
+            : `{% url 'remove_from_wishlist' 0 %}`.replace('0', variantId);
 
         $.ajax({
             url: url,

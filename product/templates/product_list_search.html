@@ -55,11 +55,11 @@
                         <img src="{{ product.base_image.url }}" class="img-fluid" alt="Product Image">
                     </a>
                     <div class="position-absolute top-0 end-0 p-2">
-                        <a href="{% url 'add_to_wishlist' product.id %}">
+                        {% comment %} <a href="{% url 'add_to_wishlist' product.id %}">
                             <span class="flaticon-heart"></span>
                         </a>
                             <a href="{% url 'add_to_wishlist' product.id %}" ></a> 
-                        </span>
+                        </span> {% endcomment %}
                     </div>
                 </div>
                 <!-- Product Details -->

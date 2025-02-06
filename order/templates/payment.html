@@ -1,0 +1,23 @@
+<div style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh;">
+    <h1>Payment Page</h1>
+    <div style="background-color: #f0f0f0; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); text-align: center;">
+        <button id="pay-btn" style="background-color: #4CAF50; border: none; color: white; padding: 15px 32px; border-radius: 8px;">Pay Now</button>
+    </div>
+</div>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+    var options = {
+        key: "{{ razorpay_merchant_key }}",
+        name: "Bloom and Vase",
+        amount: "{{ razorpay_amount }}",
+        currency: "{{ currency }}",
+        order_id: "{{ razorpay_order_id }}",
+        callback_url: "{{ callback_url }}",
+    };
+    
+    var rzp1 = new Razorpay(options);
+    document.getElementById("pay-btn").onclick = function (e) {
+        rzp1.open();
+        e.preventDefault();
+    };
+</script>

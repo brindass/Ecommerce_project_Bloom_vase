@@ -4,7 +4,7 @@ from .views import (
     user_profile, edit_profile, add_address, edit_address, delete_address,
     add_to_cart, view_cart, remove_from_cart, update_cart_item, forgot_password,
     verify_forgot_password_otp, reset_password, change_password, checkout, wishlist,
-    add_to_wishlist, remove_from_wishlist
+    add_to_wishlist, remove_from_wishlist, paymenthomepage, paymenthandler, add_funds
 )
 from user import views
 urlpatterns =[
@@ -31,6 +31,9 @@ urlpatterns =[
     path('wishlist/', wishlist, name= 'wishlist'),
     path('wishlist/add/<int:product_id>/', add_to_wishlist, name='add_to_wishlist'),
     path('wishlist/remove/<int:product_id>/', remove_from_wishlist, name='remove_from_wishlist'),
+    path('paymenthomepage',paymenthomepage,name = 'paymenthomepage'),
+    path('paymenthandler/', paymenthandler, name='paymenthandler'),
+    path('add_funds/', add_funds, name= 'add_funds')
 
 ]
     

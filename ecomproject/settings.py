@@ -193,6 +193,11 @@ LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = '/'
 
 
+RAZOR_KEY_ID ='rzp_test_D31E9ksSKEno0r'
+
+RAZOR_KEY_SECRET ='1j6zvEL3XF2pwje901RJoDv7'
+
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"
 
 import logging
 logging.basicConfig(level=logging.DEBUG)

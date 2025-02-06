@@ -3,11 +3,11 @@
 {% block body %}
 <!DOCTYPE html>
 <html lang="en">
-    {% comment %} {% if messages %}
+     {% if messages %}
             {% for message in messages %}
             <p style="color: red; text-align: center;">{{ message }}</p>
             {% endfor %}
-            {% endif %} {% endcomment %}
+            {% endif %} 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -218,13 +218,13 @@
                                 <h4>{{ item.variant.product.name }}</h4>
                                 <small style="color: gray;">Variant: {{ item.variant.color }}</small>
                                 <p>Quantity: {{ item.quantity }}</p>
-                                <p>Price: ₹{{ item.variant.product.price|floatformat:2 }}</p>
-                                <p>Total Price: {{ item.quantity }} *  ₹{{ item.variant.product.price }}
+                                <p>Price: ₹{{ item.discounted_price|floatformat:2 }}</p>
+                                <p>Total Price: {{ item.quantity }} *  ₹{{ item.discounted_price }}
                                 {% else %}
                                 <h4>{{ item.product.name }}</h4>
                                 <p>Quantity: {{ item.quantity }}</p>
-                                <p>Price: ₹{{ item.product.price|floatformat:2 }}</p>
-                                <p>Total Price: {{ item.quantity }} *  ₹{{ item.product.price }}
+                                <p>Price: ₹{{ item.discounted_price|floatformat:2 }}</p>
+                                <p>Total Price: {{ item.quantity }} *  ₹{{ item.discounted_price }}
                                 {% endif %}
                             </div>
                         </li>
@@ -235,13 +235,31 @@
                 <span>Total:</span>
                 <strong>₹{{ total|floatformat:2 }}</strong>
             </div>
+            <div class="order-summary-details">
+                {% if request.session.applied_coupon %}
+                    <p>Coupon: {{ request.session.applied_coupon }}</p>
+                    <p>Discount: ₹{{ request.session.applied_coupon }}</p>
+                    <p>Total after Discount: ₹{{ total_price }}</p>
+                {% endif %}
+            </div>
         </div>
+        <!-- Coupon Section -->
+        <div class="checkout-item list-group-item mb-4 p-4 rounded-3 border-0 shadow-sm">
+            <input type="text" id="coupon_code" name="coupon" class="form-control mb-3" placeholder="Enter Coupon Code">
+            <div class="d-flex justify-content-between">
+                <button type="button" id="apply_coupon" class="btn btn-sm btn-coupon-apply">Apply Coupon</button>
+                <button type="submit" name="remove_coupon" value="1" class="btn btn-sm btn-coupon-remove">Remove Coupon</button>
+            </div>
+        </div>
+        <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+
+        
 
         <!-- Payment Method Section -->
         <div class="payment-method">
             <h2>Payment Method</h2>
             <label>
-                <input type="radio" name="payment_method" value="online" required> Online Payment
+                <input type="radio" name="payment_method" value="razorpay" required> Online Payment
             </label>
             <label>
                 <input type="radio" name="payment_method" value="cod" required> Cash on Delivery
@@ -255,26 +273,92 @@
         <button type="submit" onclick="validateForm()" class="place-order-btn">Place Order</button>
     </form>
 </div>
+<!-- COD Restriction Modal -->
+<div id="codRestrictionModal" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">
+    <div class="modal-content" style="background: white; margin: 20% auto; padding: 20px; width: 40%; border-radius: 8px; text-align: center;">
+        <h3>COD Not Available</h3>
+        <p>Cash on Delivery is not applicable for orders above ₹1000.</p>
+        <button onclick="closeCodModal()" style="background-color: #FF5722; color: white; padding: 10px 20px; border: none; border-radius: 5px;">OK</button>
+    </div>
+</div>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
 <script>
-    function validateForm() {
+    function validateForm(event) {
+        event.preventDefault();  // Prevent default form submission
+    
         const selectedAddress = document.querySelector('input[name="address"]:checked');
         const selectedPaymentMethod = document.querySelector('input[name="payment_method"]:checked');
-
+        const totalAmount = parseFloat(document.querySelector('.total strong').innerText.replace('₹', '').trim());
+    
         // Validate address selection
         if (!selectedAddress) {
             alert('Please select an address before proceeding.');
-            return false; // Prevent form submission
+            return false;
         }
-
+    
         // Validate payment method selection
         if (!selectedPaymentMethod) {
             alert('Please select a payment method.');
-            return false; // Prevent form submission
+            return false;
         }
-
-        // Submit the form if both validations pass
+    
+        // Check for COD restriction
+        if (selectedPaymentMethod.value === 'cod' && totalAmount > 1000) {
+            document.getElementById('codRestrictionModal').style.display = 'block';
+            return false;  // Stop the form submission
+        }
+    
+        // If everything is valid, submit the form
         document.getElementById('address-form').submit();
     }
+    
+    // Ensure the Place Order button calls the function properly
+    document.querySelector('.place-order-btn').addEventListener('click', validateForm);
+    
+    function closeCodModal() {
+        document.getElementById('codRestrictionModal').style.display = 'none';
+    }
+    $(document).ready(function() {
+        $('#apply_coupon').click(function() {
+            var couponCode = $('#coupon_code').val();
+            var totalPrice = parseFloat($('.total strong').text().replace('₹', '').trim()); // Get total from UI
+            console.log('Total Price:', totalPrice);
+
+            $.ajax({
+                url: '{% url "apply_coupon" %}',  
+                method: 'POST',
+                data: {
+                    'coupon': couponCode,
+                    'totalprice': totalPrice,   // Include total price
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+
+                },
+                
+                success: function(response) {
+                    if (response.status == 'success') {
+                        $('.order-summary-details').html(`
+                            <p>Coupon: ${response.coupon_code}</p>
+                            <p>Discount: ₹${response.discount_amount}</p>
+                            <p>Total after Discount: ₹${response.new_total_price}</p>
+                        `);
+                       
+                        
+                        // Store coupon details in session
+                        sessionStorage.setItem('coupon', couponCode);
+                        sessionStorage.setItem('coupon_discount', response.discount_amount);
+                    } else {
+                        alert(response.message);
+                    }
+                },
+                error: function() {
+                    alert('An error occurred while applying the coupon.');
+                }
+            });
+        });
+    });
+
+    
 </script>
 
 </body>

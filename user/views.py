@@ -9,13 +9,23 @@ from django.core.mail import send_mail
 from django.utils import timezone
 from datetime import timedelta
 from django.conf import settings
-from .models import MyUser, Address, Cart, CartItem, Product, ProductVariant, Wishlist, WishlistItem
+from .models import MyUser, Address, Cart, CartItem, Product, ProductVariant, Wishlist, WishlistItem, Wallet, Transaction
 from datetime import datetime
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 import json
 from django.contrib.auth.hashers import make_password, check_password
 from order.models import Order, OrderItem
+from decimal import Decimal
+import razorpay
+from django.views.decorators.csrf import csrf_exempt
+from django.http import HttpResponseBadRequest
+from django.urls import reverse
+from product.views import get_discounted_price
+from django.core.paginator import Paginator
+from my_admin.models import Coupon
+from django.http import HttpResponse
+
 # Create your views here.
 
 def test(request):
@@ -162,8 +172,18 @@ def user_profile(request):
     if request.user.is_authenticated:
         user = request.user
         addresses = user.addresses.all()  
+
+        wallet = get_object_or_404(Wallet, user=user)
+
+        transactions = Transaction.objects.filter(wallet=wallet).order_by('-transaction_date')
+
+        # Paginate transactions (5 per page)
+        paginator = Paginator(transactions, 5)
+        page_number = request.GET.get('page', 1)
+        transactions = paginator.get_page(page_number)
         
-        context = {'profile_user': user, 'addresses': addresses}
+        context = {'profile_user': user, 'addresses': addresses, 'wallet': wallet, 'transactions': transactions}
+            
         return render(request, 'user/user_profile.html', context)
     return redirect('user_login')
 
@@ -228,63 +248,34 @@ def delete_address(request, address_id):
 @login_required
 def add_to_cart(request, product_id):
     if request.method == 'POST':
-        print(request.POST)
         user = request.user
         page = request.POST.get('page')
-        print("page name ",page)
-        print(user)
         variant = None
 
         if page == "variants_page":
             variant = get_object_or_404(ProductVariant, id=product_id)
         elif page == "product_page":
-            # variant = get_object_or_404(ProductVariant, id=product_id)
-            print(">>>>>>>",product_id)
-            default_variant = ProductVariant.objects.filter(product_id=product_id).first()
-            # print("...........",default_variant.product.name)
-            # product = get_object_or_404(Product, id=product_id)
-            if default_variant:
-                variant = get_object_or_404(ProductVariant, id=default_variant.id)
-            else:
-                product = get_object_or_404(Product, id=product_id)
+            product = get_object_or_404(Product, id=product_id)
+            variant = product.variants.filter(is_default=True).first()  # Get default variant
 
-        # variant_id = request.POST.get('variant_id')  # Fetch variant ID from POST data
-        # print(variant_id)
-        # product = get_object_or_404(Product, id=product_id)
-        
-        # Fetch the variant if ID is provided
-        # if variant_id:
-        #     variant = get_object_or_404(ProductVariant, id=variant_id)
-        #     print(variant)
-        #     if variant.quantity <= 0:
-        #         messages.error(request, f"{variant.product.name} - {variant.color} is out of stock")
-        #         return redirect('variant_details', pk=variant.id)
-
-        # Check base product stock if no variant is selected
-        if not variant and product.quantity <= 0:
-            messages.error(request, f"{product.name} is out of stock")
+        if not variant:
+            messages.error(request, "No variant available for this product.")
             return redirect('product_details', pk=product_id)
-        
+
+        if variant.quantity <= 0:
+            messages.error(request, f"{variant.product.name} - {variant.color} is out of stock")
+            return redirect('product_details', pk=product_id)
+
         # Create or retrieve cart
         cart, created = Cart.objects.get_or_create(user=user)
 
         # Add item to cart
-        if variant:
-            # print(variant,"before creation")
-            # print("the product ",product.name)
-            # print("the variant ",variant.product.name,variant.color)
+        cart_item, created = CartItem.objects.get_or_create(cart=cart, product=variant.product, variant=variant)
 
-            cart_item, created = CartItem.objects.get_or_create(cart=cart, product=variant.product, variant=variant)
-            v = variant
-            print(variant,"after creation")
-        else:
-            cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product, variant=None)
-            v = product
         # Update quantity
         if not created:
-            available_quantity = variant.quantity if variant else product.quantity
-            if cart_item.quantity >= available_quantity:
-                messages.error(request, f"Only {available_quantity} items available")
+            if cart_item.quantity >= variant.quantity:
+                messages.error(request, f"Only {variant.quantity} items available")
             else:
                 cart_item.quantity += 1
                 cart_item.save()
@@ -292,23 +283,26 @@ def add_to_cart(request, product_id):
             cart_item.quantity = 1
             cart_item.save()
 
-        messages.success(request, f"{v} added to cart")
+        messages.success(request, f"{variant.product.name} - {variant.color} added to cart")
         return redirect('view_cart')
-
 
 # list products in cart
 @login_required
 def view_cart(request):
     user = request.user
-    cart = Cart.objects.filter(user=user).first()  # Retrieve user's cart
+    cart = Cart.objects.filter(user=user).first()
     cart_items = cart.items.all() if cart else []
 
     for item in cart_items:
-        if item.variant:  # If a variant is selected
-            item.subtotal = item.variant.product.price * item.quantity  # Use variant's price and quantity
-            item.variant_name = f"{item.variant.product.name} - {item.variant.color}"  # Variant details
-        else:  # Base product is selected
-            item.subtotal = item.product.price * item.quantity  # Use product's price and quantity
+        if item.variant:
+            discounted_price = get_discounted_price(item.variant.product)
+            item.discounted_price = discounted_price
+            item.subtotal = discounted_price * item.quantity
+            item.variant_name = f"{item.variant.product.name} - {item.variant.color}"
+        else:
+            discounted_price = get_discounted_price(item.product)
+            item.discounted_price = discounted_price
+            item.subtotal = discounted_price * item.quantity
             item.variant_name = None
 
     total = sum(item.subtotal for item in cart_items)
@@ -327,6 +321,8 @@ def remove_from_cart(request, item_id):
     cart_item.delete()
     return redirect('view_cart')
 
+
+
 @login_required
 def update_cart_item(request):
     if request.method == 'POST':
@@ -335,26 +331,28 @@ def update_cart_item(request):
         new_quantity = data.get('quantity')
 
         cart_item = get_object_or_404(CartItem, id=item_id, cart__user=request.user)
+        if new_quantity > cart_item.variant.quantity:
+            return JsonResponse({'error': f"Only {cart_item.variant.quantity} items available"}, status=400)
+
         cart_item.quantity = new_quantity
         cart_item.save()
 
-        # Calculate subtotal for the item
-        if cart_item.variant:
-            subtotal = cart_item.variant.product.price * cart_item.quantity  # Use variant's price
-        else:
-            subtotal = cart_item.product.price * cart_item.quantity  # Use product's price
+        discounted_price = get_discounted_price(cart_item.product)
+        item_price = discounted_price if discounted_price < cart_item.product.price else cart_item.product.price
+        subtotal = item_price * cart_item.quantity
 
-        # Calculate total for the cart
         cart = Cart.objects.get(user=request.user)
-        cartitems = cart.items.all()
         total = sum(
-            (item.variant.product.price * item.quantity if item.variant else item.product.price * item.quantity)
-            for item in cartitems
+            (get_discounted_price(item.variant.product) * item.quantity if item.variant else get_discounted_price(item.product) * item.quantity)
+            for item in cart.items.all()
         )
 
         return JsonResponse({'subtotal': subtotal, 'total': total})
 
     return JsonResponse({'error': 'Invalid request'}, status=400)
+
+
+
 def forgot_password(request):
     if request.method == 'POST':
         email = request.POST.get('email')
@@ -442,8 +440,15 @@ def change_password(request):
     
     return render(request, 'user/change_password.html')
 
+# Razorpay client initialization
+razorpay_client = razorpay.Client(auth=(settings.RAZOR_KEY_ID, settings.RAZOR_KEY_SECRET))
+
+
 def checkout(request):
     user = request.user
+
+    # Ensure the user has a wallet
+    wallet, created = Wallet.objects.get_or_create(user=user)
 
     # Check if user has a cart
     cart = Cart.objects.filter(user=user).first()
@@ -457,26 +462,160 @@ def checkout(request):
     cart_items = cart.items.select_related('product', 'variant')  # Ensure variant is fetched
 
     
-    total_price = sum(
-        (item.variant.product.price if item.variant else item.product.price) * item.quantity
-        for item in cart_items
-    )
-    
-    print(total_price)
-   
+    # Calculate total price with discounts
+    total_price = Decimal('0.00')
+    for item in cart_items:
+        # Use get_discounted_price to calculate the best price
+        product_price = get_discounted_price(item.product)
+        variant_price = get_discounted_price(item.variant.product) if item.variant else None
+        print("name of hre prfj",item.product.name, item.product.category)
+        discounted_price = variant_price if variant_price else product_price
+        print("Hii",discounted_price)
+        item.discounted_price = discounted_price
+        item.total_price = discounted_price * item.quantity
+        total_price += item.total_price
+        item.save()
+
+    # Handle coupon
+    # Use session-stored coupon discount if available
+
+    coupon_code = request.session.get('coupon', None)
+    print(coupon_code) 
+    coupon_discount = Decimal(request.session.get('coupon_discount', '0.00'))
+
+    # coupon = Coupon.objects.get(coupon_code=coupon, is_active=True)
+    # print('coup',coupon)
+
+    # If user removes the coupon
+    if request.POST.get('remove_coupon'):
+        request.session.pop('coupon', None)
+        request.session.pop('coupon_discount', None)
+        messages.success(request, "Coupon removed successfully.")
+        return redirect('checkout')
+
+    total_price -= coupon_discount  # Apply discount if present
+    print('coupon',total_price)
+    # return render(request, 'checkout.html', {
+    #     'total_price': total_price,
+    #     'coupon_code': coupon_code,
+    #     'coupon_discount': coupon_discount
+    # })
+
     
     if request.method == 'POST':
         print('hi')
         # Handle form submission
         address_id = request.POST.get('address')
         payment_method = request.POST.get('payment_method')
-
+        coupon_code = request.POST.get('coupon', None)
+        print('coopon_code:',coupon_code)
+        
         if not address_id or not payment_method:
             messages.error(request, "Please select a valid address and payment method.")
             return redirect('checkout')
 
         # Validate address
         address = get_object_or_404(Address, id=address_id, users=user)
+
+        # coupon = Coupon.objects.get(coupon_code=coupon_code, is_active=True)
+        # print('coup',coupon)
+
+        coupon = None
+
+        if coupon_code:
+            try:
+                total_price = Decimal(total_price)  
+                coupon = Coupon.objects.get(coupon_code=coupon_code, is_active=True)
+
+                if total_price >= coupon.min_purchase_amount:
+                    discount_amount = (coupon.discount_percentage / Decimal(100)) * total_price
+                    total_price = total_price - discount_amount
+                    request.session['coupon'] = coupon.coupon_code
+                    print('Total price after coupon_applied:',total_price)
+                else:
+                    return HttpResponse("Error: Minimum purchase amount for the coupon is not met")
+            except Coupon.DoesNotExist:
+                return HttpResponse("Error: Invalid coupon code")
+
+        # Handle wallet payment
+        if payment_method == 'wallet':
+            wallet = get_object_or_404(Wallet,user=user)
+            transaction = Transaction.objects.filter(wallet=wallet)
+            if wallet.amount >= total_price:
+                wallet.debit(total_price)
+                wallet.save()
+
+                # Create order
+                order = Order.objects.create(
+                    user=user,
+                    total_price=total_price,
+                    street_address=address.street,
+                    city=address.city,
+                    district=address.district,
+                    state=address.state,
+                    pincode=address.pincode,
+                    payment=payment_method,
+                    payment_status='Completed',
+                    coupon=coupon if coupon else None
+                )
+                # Create order items and update variant/product quantities
+                for item in cart_items:
+                    print(item)
+            # Check variant stock if a variant exists
+                # Update stock
+                if item.variant:
+                    if item.variant.quantity >= item.quantity:
+                        item.variant.quantity -= item.quantity
+                        item.variant.save()
+                    else:
+                        messages.error(request, f"Insufficient stock for {item.variant.product.name}.")
+                        return redirect('view_cart')
+                else:
+                    if item.product.quantity >= item.quantity:
+                        item.product.quantity -= item.quantity
+                        item.product.save()
+                    else:
+                        messages.error(request, f"Insufficient stock for {item.product.name}.")
+                        return redirect('view_cart')
+
+
+                # Create order item
+                OrderItem.objects.create(
+                order=order,
+                product=item.product,
+                variant=item.variant,
+                quantity=item.quantity,
+                price=item.total_price / item.quantity,  # Per-item price
+            )
+
+            else:
+                messages.error(request,'Insufficient wallet balance')
+                return redirect('checkout')
+        # Clear the cart
+            cart.items.all().delete()
+
+            Transaction.objects.create(wallet = wallet,amount = order.total_price,transaction_type = 'debit')
+
+            messages.success(request, "Your order has been placed successfully!")
+            return render(request, 'order_success.html', {'orders': order})
+        # else:
+        #     messages.error(request,'insufficient wallet balance')
+            # return redirect('checkout')
+
+        # Handle Razorpay payment method
+        if payment_method == 'razorpay':
+            request.session['total_price'] = str(total_price)
+            request.session['address_id'] = address.id
+            request.session['order_items'] = [
+                {
+                    'product_id': item.product.id,
+                    'variant_id': item.variant.id if item.variant else None,
+                    'quantity': item.quantity,
+                    'price': float(item.discounted_price),
+                } for item in cart_items
+            ]
+            return redirect('paymenthomepage')
+            
 
         # Create order
         order = Order.objects.create(
@@ -489,6 +628,7 @@ def checkout(request):
             pincode=address.pincode,
             payment=payment_method,
             payment_status='Pending',
+            coupon=coupon if coupon else None
         )
 
         # Create order items and update variant/product quantities
@@ -503,7 +643,7 @@ def checkout(request):
                 else:
                     messages.error(request, f"Insufficient stock for {item.variant.product.name}.")
                     return redirect('view_cart')
-                price = item.variant.product.price
+                price = item.discounted_price
                 print(price)
             else:
                 # Check product stock
@@ -513,7 +653,7 @@ def checkout(request):
                 else:
                     messages.error(request, f"Insufficient stock for {item.product.name}.")
                     return redirect('view_cart')
-                price = item.product.price
+                price = item.discounted_price
                 print(price)
 
             # Create order item
@@ -530,14 +670,18 @@ def checkout(request):
 
         messages.success(request, "Your order has been placed successfully!")
         return render(request, 'order_success.html', {'orders': order})
+    
 
     # Render checkout page
     context = {
         'addresses': addresses,
         'cart_items': cart_items,
         'total': total_price,
+        'coupon_discount': coupon_discount,
+        'coupon_code': coupon_code,
     }
     return render(request, 'user/checkout.html', context)
+
 
 @login_required
 def wishlist(request):
@@ -552,6 +696,7 @@ def add_to_wishlist(request, product_id):
     if request.method == 'POST':
         product = get_object_or_404(Product, id=product_id)
         variant_id = request.POST.get('variant_id')
+        print(variant_id)
         variant = ProductVariant.objects.filter(id=variant_id).first() if variant_id else None
 
         wishlist, created = Wishlist.objects.get_or_create(user=request.user)
@@ -574,3 +719,140 @@ def remove_from_wishlist(request, product_id):
         return JsonResponse({'status': 'success', 'message': "Item removed from your wishlist."})
 
     return JsonResponse({'status': 'error', 'message': 'Invalid request.'})
+
+
+def paymenthomepage(request):
+    total_price = Decimal(request.session.get('total_price', '0'))
+    print(total_price)
+    currency = 'INR'
+    amount = int(total_price * 100)  # Convert to paise
+
+    # Create Razorpay order
+    razorpay_order = razorpay_client.order.create(dict(amount=amount, currency=currency, payment_capture='0'))
+    razorpay_order_id = razorpay_order['id']
+    callback_url ='paymenthandler/'
+    print(razorpay_order_id)
+    print(callback_url)
+    # name = "Bloom and vase"
+
+    context = {
+        'razorpay_order_id': razorpay_order_id,
+        'razorpay_merchant_key': settings.RAZOR_KEY_ID,
+        'razorpay_amount': amount,
+        'currency': currency,
+        'callback_url': callback_url,
+       
+    }
+
+    return render(request, 'payment.html', context)
+
+
+
+@csrf_exempt
+def paymenthandler(request):
+    print("payment")
+    
+
+    if request.method == 'POST':
+        print('request',request)
+        try:
+            payment_id = request.POST.get('razorpay_payment_id', '')
+            razorpay_order_id = request.POST.get('razorpay_order_id', '')
+            signature = request.POST.get('razorpay_signature', '')
+
+            params_dict = {
+                'razorpay_order_id': razorpay_order_id,
+                'razorpay_payment_id': payment_id,
+                'razorpay_signature': signature,
+            }
+
+            result = razorpay_client.utility.verify_payment_signature(params_dict)
+            if result:
+                total_price = Decimal(request.session.get('total_price', '0'))
+                amount = int(total_price * 100)
+
+                razorpay_client.payment.capture(payment_id, amount)
+
+                user = request.user
+                if user:
+                    print(user)
+                else:
+                    print('user none')
+                cart = Cart.objects.filter(user=user).first()
+                address = get_object_or_404(Address, id=request.session['address_id'], users=user)
+                print(address)
+                order_items = request.session.get('order_items', [])
+                coupon_code = request.session.get('coupon',None)
+                print(coupon_code)
+                print('razorpay order created')
+                coupon = None
+
+                if coupon_code:
+                    try:
+                        coupon = Coupon.objects.get(coupon_code=coupon_code, is_active = True)
+                    except Coupon.DoesNotExist:
+                        coupon = None
+                        
+                        
+
+                # Create order
+                order = Order.objects.create(
+                    user =user,
+                    total_price=total_price,
+                    street_address=address.street,
+                    city=address.city,
+                    district=address.district,
+                    state=address.state,
+                    pincode=address.pincode,
+                    payment='razorpay',
+                    payment_status='Paid',
+                    coupon=coupon
+                )
+
+                for item in order_items:
+                    for i in item:
+                        print(i)
+                    variant = get_object_or_404(ProductVariant, id=item['variant_id'])
+                    OrderItem.objects.create(
+                        order=order,
+                        product=variant.product,
+                        quantity=item['quantity'],
+                        price=item['price'],
+                    )
+                    variant.quantity -= item['quantity']
+                    variant.save()
+
+                cart.items.all().delete()
+
+                # Clear session data
+                del request.session['total_price']
+                del request.session['order_items']
+                del request.session['address_id']
+
+                return render(request,'order_success.html')
+
+            else:
+                messages.error(request, "Payment verification failed. Please try again.")
+                return redirect('view_cart')
+        except Exception as e:
+            print(e)
+            return render(request, 'paymentfail.html')
+
+    return HttpResponseBadRequest()
+
+@login_required
+def add_funds(request):
+    user = request.user
+    wallet, created = Wallet.objects.get_or_create(user=user)
+
+    if request.method == 'POST':
+        amount = request.POST.get('amount')
+        if amount:
+            amount = Decimal(amount)
+            wallet.credit(amount)
+            Transaction.objects.create(wallet=wallet, transaction_type='credit', amount=amount)
+            messages.success(request, f"Successfully added ${amount} to your wallet.")
+            return redirect('user_profile')
+
+    return render(request, 'user/add_funds.html', {'wallet': wallet})
+

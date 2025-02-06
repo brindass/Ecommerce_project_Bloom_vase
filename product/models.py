@@ -11,7 +11,7 @@ class Product(models.Model):
     
     name = models.CharField(max_length=100)
     base_image = models.ImageField(upload_to='products/base')
-    quantity = models.PositiveIntegerField()
+    # quantity = models.PositiveIntegerField()
     price = models.PositiveIntegerField()
     description = models.TextField()
     # rating = models.PositiveIntegerField(default=1) # max upto 5
@@ -29,13 +29,32 @@ class Product(models.Model):
         # if self.parent_product:
         #     return f"{self.parent_product.name} - {self.color}"
         return self.name
+    
+    def get_default_variant(self):
+        """Returns the default variant of a product if available"""
+        return self.variants.filter(is_default=True).first()
 
+    @property
+    def total_quantity(self):
+        """Get total quantity across all variants"""
+        return sum(variant.quantity for variant in self.variants.all())
+    
 class Category(models.Model):
     name = models.CharField(max_length=100, null=False)
     inactive = models.BooleanField(default=False) # soft_delete
 
     def __str__(self):
         return self.name
+    
+class CategoryOffer(models.Model):
+    name = models.CharField(max_length=100)  
+    category = models.ForeignKey('Category', on_delete=models.CASCADE)
+    discount_percentage = models.DecimalField(max_digits=5, decimal_places=2)
+    start_date = models.DateTimeField()
+    end_date = models.DateTimeField()
+
+    def __str__(self):
+        return f"Offer for {self.category.name} - {self.discount_percentage}%"
 
 class ProductImage(models.Model):
     image = models.ImageField(upload_to='products/')
@@ -53,12 +72,28 @@ class Product_reviews(models.Model):
     def __str__(self):
         return f"{self.user.name} {self.product.name}"
     
-
+    
 class ProductVariant(models.Model):
     product = models.ForeignKey('Product', on_delete=models.CASCADE, related_name='variants')
     color = models.CharField(max_length=50)
     quantity = models.PositiveIntegerField()
     variant_image = models.ImageField(upload_to='products/variants', null=True, blank=True)
+    is_default = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.product.name} - {self.color}"
+    
+    def save(self, *args, **kwargs):
+        # Ensure at least one variant is marked as default
+        if not self.product.variants.exists():
+            self.is_default = True
+        super().save(*args, **kwargs)
+    
+class ProductOffer(models.Model):
+    product = models.ForeignKey('Product', on_delete=models.CASCADE)
+    discount_percentage =  models.DecimalField(max_digits=5, decimal_places=2)
+    start_date = models.DateTimeField()
+    end_date = models.DateTimeField()
+
+    def __str__(self):
+        return f"Offer for {self.product.name} - {self.discount_percentage}%"

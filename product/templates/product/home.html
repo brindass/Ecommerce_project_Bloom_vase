@@ -92,12 +92,13 @@
                 <div class="col-xl-4 col-lg-4 col-md-6 col-sm-6">
                     <div class="single-new-pro mb-30 text-center">
                         <div class="product-img">
-                            <a href="{% url 'product_details' product.id%}">
+                            <a href="{% url 'variant_details' product.get_default_variant.id %}">
                             <img src="{{product.base_image.url}}" alt="">
                         </div>
                         <div class="product-caption">
                             <h3><a href="product_details.html">{{product.name}}</a></h3>
                             <span>Rs.{{product.price}}</span>
+                            <span>Qty{{product.total_quantity}}
                         </div>
                     </div>
                 </div>

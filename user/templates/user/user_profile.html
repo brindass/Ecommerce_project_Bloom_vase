@@ -1,16 +1,16 @@
 <div style="width: 50%; margin: 40px auto; background-color: #ffffff; border: 1px solid #ddd; padding: 20px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); border-radius: 8px;">
-    <h1 style="text-align: center; font-size: 2rem; color: #333;">User Profile</h1><h5><a href = "{% url 'home' %}" style="text-decoration: none; color: #007bff;">Home</h5></a>
-    
-    <!-- Add buttons for Profile Details and Orders -->
+    <h1 style="text-align: center; font-size: 2rem; color: #333;">User Profile</h1>
+    <h5><a href="{% url 'home' %}" style="text-decoration: none; color: #007bff;">Home</a></h5>
+
+    <!-- Add buttons for Profile Details, Wallet, and Orders -->
     <div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 20px;">
         <button id="profile-details-btn" style="padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: background-color 0.3s ease;">
             Profile Details
         </button>
-        <a href="{% url 'order_success' %}" style="text-decoration: none; color: #007bff; font-weight: bold; margin-right: 10px; transition: color 0.3s ease;">Orders</a>
-        {% comment %} <button id="orders-btn" style="padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: background-color 0.3s ease;">
-            Orders
-        </button> {% endcomment %}
-       
+        <button id="wallet-btn" style="padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: background-color 0.3s ease;">
+            Wallet
+        </button>
+        <a href="{% url 'order_success' %}" style="text-decoration: none; color: #007bff; font-weight: bold; transition: color 0.3s ease;">Orders</a>
     </div>
 
     <!-- Profile Details Section -->
@@ -19,71 +19,160 @@
         <p>Email: {{ profile_user.email }}</p>
         <p>First Name: {{ profile_user.first_name }}</p>
         <p>Last Name: {{ profile_user.last_name }}</p>
+        <div style="margin-top: 5px;">
+            <a href="{% url 'edit_profile' %}" style="text-decoration: none; color: #007bff; font-weight: bold; transition: color 0.3s ease;">Edit</a>
+        </div>
     </div>
 
-    <div style="margin-top: 5px;">
-        <a href="{% url 'edit_profile' %}" style="text-decoration: none; color: #007bff; font-weight: bold; margin-right: 10px; transition: color 0.3s ease;">Edit</a>
+    <!-- Wallet Section -->
+    <div id="wallet-section" style="display: none;">
+        <style>
+            .wallet-info {
+                text-align: center;
+                margin-bottom: 2rem;
+            }
+
+            .wallet-info h5 {
+                font-size: 1.25rem;
+                font-weight: bold;
+            }
+
+            .transaction-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 20px 0;
+                font-size: 1rem;
+                text-align: center;
+                background-color: #f9f9f9;
+                border: 1px solid #ddd;
+            }
+        
+            .transaction-table th {
+                background-color: #007bff;
+                color: #fff;
+                padding: 10px;
+                text-transform: uppercase;
+                font-weight: bold;
+            }
+        
+            .transaction-table td {
+                padding: 8px 12px;
+                border-bottom: 1px solid #ddd;
+            }
+        
+            .transaction-table tr:nth-child(even) {
+                background-color: #f2f2f2;
+            }
+        
+            .transaction-table tr:hover {
+                background-color: #e6f7ff;
+            }
+        
+            .transaction-table .credit {
+                color: #28a745;
+                font-weight: bold;
+            }
+        
+            .transaction-table .debit {
+                color: #dc3545;
+                font-weight: bold;
+            }
+        
+            .transaction-table .refund {
+                color: #ffc107;
+                font-weight: bold;
+            }
+        
+            .add-funds-btn {
+                display: inline-block;
+                padding: 10px 20px;
+                font-size: 1rem;
+                color: #fff;
+                background-color: #28a745;
+                border: none;
+                border-radius: 5px;
+                text-decoration: none;
+                font-weight: bold;
+                transition: background-color 0.3s ease;
+            }
+        
+            .add-funds-btn:hover {
+                background-color:rgb(49, 180, 80);
+            }
+        </style>
+
+        <div class="p-3">
+            <div class="wallet-info">
+                <h5>Wallet Balance</h5>
+                <h3>₹{{ wallet.amount }}</h3>
+                {% comment %} <a href="{% url 'add_funds' %}" class="add-funds-btn">Add Funds</a> {% endcomment %}
+
+            </div>
+
+            <h4>Transaction History</h4>
+            <table class="transaction-table">
+                <thead>
+                    <tr>
+                        <th>Transaction ID</th>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transaction in transactions %}
+                    <tr>
+                        <td>{{ transaction.id }}</td>
+                        <td>{{ transaction.transaction_date }}</td>
+                        <td>
+                            {% if transaction.transaction_type == 'credit' %}
+                            <span class="credit">Credit</span>
+                            {% elif transaction.transaction_type == 'debit' %}
+                            <span class="debit">Debit</span>
+                            {% elif transaction.transaction_type == 'refund' %}
+                            <span class="refund">Refund</span>
+                            {% endif %}
+                        </td>
+                        <td>₹ {{ transaction.amount }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+        </div>
     </div>
 
     <!-- Addresses Section -->
     <div id="addresses-section">
         <h2 style="font-size: 1.5rem; margin-bottom: 10px; color: #333;">Addresses</h2>
         {% for address in addresses %}
-            <p style="margin: 10px 0; font-size: 1.1rem; color: #444;">
-                {{ address.street }}, {{ address.city }}, {{ address.state }}, {{ address.pincode }}
-            </p>
-            <div style="margin-top: 5px;">
-                <a href="{% url 'edit_address' address.id %}" style="text-decoration: none; color: #007bff; font-weight: bold; margin-right: 10px; transition: color 0.3s ease;">Edit</a>
-                <a href="{% url 'delete_address' address.id %}" style="text-decoration: none; color: #007bff; font-weight: bold; transition: color 0.3s ease;">Delete</a>
-            </div>
+        <p style="margin: 10px 0; font-size: 1.1rem; color: #444;">
+            {{ address.street }}, {{ address.city }}, {{ address.state }}, {{ address.pincode }}
+        </p>
+        <div style="margin-top: 5px;">
+            <a href="{% url 'edit_address' address.id %}" style="text-decoration: none; color: #007bff; font-weight: bold; margin-right: 10px; transition: color 0.3s ease;">Edit</a>
+            <a href="{% url 'delete_address' address.id %}" style="text-decoration: none; color: #007bff; font-weight: bold; transition: color 0.3s ease;">Delete</a>
+        </div>
         {% endfor %}
         <a href="{% url 'add_address' %}" style="display: block; margin-top: 20px; padding: 10px 15px; background-color:  #2196F3; color: #ffffff; text-align: center; border-radius: 5px; text-decoration: none; font-weight: bold; transition: background-color 0.3s ease;">Add Address</a>
-        
     </div>
 
-
-
-        <div>
-        <a href="{% url 'change_password' %}" style="text-decoration: none; color: #007bff; font-weight: bold; margin-right: 10px; margin-top: 100px; transition: color 0.3s ease;">Change Password</a>
-    </div>
-
-    {% comment %} <!-- Orders Section (Initially hidden) -->
-    <div id="orders-section" style="display: none;">
-        <h2 style="font-size: 1.5rem; margin-bottom: 10px; color: #333;">Orders</h2>
-        {% if orders %}
-            <ul style="list-style-type: none; padding-left: 0;">
-                {% for order in orders %}
-                    <li style="margin-bottom: 10px; font-size: 1.1rem;">
-                        Order #{{ order.id }} - {{ order.date }} - {{ order.status }}
-                    </li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p style="font-size: 1.1rem; color: #444;">No orders found.</p>
-        {% endif %}
+    <div>
+        <a href="{% url 'change_password' %}" style="text-decoration: none; color: #007bff; font-weight: bold; transition: color 0.3s ease;">Change Password</a>
     </div>
 </div>
 
-<!-- Add JavaScript for toggling between Profile Details and Orders -->
+<!-- Add JavaScript for toggling sections -->
 <script>
-    document.getElementById('profile-details-btn').addEventListener('click', function() {
+    document.getElementById('profile-details-btn').addEventListener('click', function () {
         document.getElementById('profile-details-section').style.display = 'block';
+        document.getElementById('wallet-section').style.display = 'none';
         document.getElementById('addresses-section').style.display = 'block';
-        document.getElementById('orders-section').style.display = 'none';
     });
 
-     {% comment %} document.getElementById('orders-btn').addEventListener('click', function() {
+    document.getElementById('wallet-btn').addEventListener('click', function () {
         document.getElementById('profile-details-section').style.display = 'none';
+        document.getElementById('wallet-section').style.display = 'block';
         document.getElementById('addresses-section').style.display = 'none';
-        document.getElementById('orders-section').style.display = 'block'; 
-    }); {% endcomment %}
+    });
 </script>
-</div>
-</div>
-
-
- {% comment %} <h2>Orders</h2>
-{% for order in orders %}
-    <p>Order #{{ order.id }} - {{ order.status }}</p>
-    <a href="{% url 'cancel_order' order.id %}">Cancel Order</a>
-{% endfor %}  {% endcomment %}

@@ -82,6 +82,7 @@
                 <th>Order ID</th>
                 <th>Total Price</th>
                 <th>Status</th>
+                <th>Payment status</th>
                 <th>View Details</th>
                 <th>Action</th>
             </tr>
@@ -107,6 +108,19 @@
                 {% else %}
                 <span class = 'badge bg-success'>{{order.status}}</span>
                 {% endif %}</p> 
+                </td>
+                <td>
+                    {% if order.is_cancelled %}
+
+                    {% if order.payment_status == 'refunded to wallet' %}
+                        <p>refunded to your wallet</p>
+                    {% else %}
+                        <p>order cancelled</p>
+                    {% endif %}
+
+                {% else %}
+                    <p>{{ order.payment_status }}</p>
+                {% endif %}
                 </td>
 
                 <td><a href="{% url 'order_details' order.id %}">Details</a></td>
@@ -134,6 +148,22 @@
             </tr>
             {% endfor %}
         </tbody>
+           <!-- Pagination Controls -->
+<div class="pagination" style="display: flex; justify-content: center; margin-top: 30px; padding-bottom: 20px;">
+    {% if orders.has_previous %}
+        <a href="?page=1" style="margin: 0 10px; padding: 8px 12px; border: 1px solid #007bff; border-radius: 5px; text-decoration: none; color: #007bff;">&laquo; First</a>
+        <a href="?page={{ orders.previous_page_number }}" style="margin: 0 10px; padding: 8px 12px; border: 1px solid #007bff; border-radius: 5px; text-decoration: none; color: #007bff;">Previous</a>
+    {% endif %}
+
+    <span style="margin: 0 15px; font-weight: bold;">Page {{ orders.number }} of {{ orders.paginator.num_pages }}</span>
+
+    {% if orders.has_next %}
+        <a href="?page={{ orders.next_page_number }}" style="margin: 0 10px; padding: 8px 12px; border: 1px solid #007bff; border-radius: 5px; text-decoration: none; color: #007bff;">Next</a>
+        <a href="?page={{ orders.paginator.num_pages }}" style="margin: 0 10px; padding: 8px 12px; border: 1px solid #007bff; border-radius: 5px; text-decoration: none; color: #007bff;">Last &raquo;</a>
+    {% endif %}
+</div>
+
+
     </table>
 
 </body>

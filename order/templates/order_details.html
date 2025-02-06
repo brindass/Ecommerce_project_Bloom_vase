@@ -33,6 +33,16 @@
             <tr>
                 <th>Total Price</th>
                 <td>₹{{ order.total_price }}</td>
+                
+            </tr>
+            <tr>    
+                {% if order.coupon %}
+                <th>Coupon</th>
+                <td>Coupon applied: ₹ {{ discount_price }} </td>
+                {% else %}
+                <th> Coupon</th>
+                <td>Coupon applied: None </td>
+                {% endif %}
             </tr>
             <tr>
                 <th>Payment Method</th>
@@ -99,6 +109,10 @@
         <p>No order details available.</p>
     {% endif %}
 </body>
+<div style="text-align: center; margin-top: 20px;">
+    <a href="{% url 'order_pdf' order.id %}" class="btn btn-primary">Download</a>
+</div>
+
 </html>
 
 {% endblock body %}
