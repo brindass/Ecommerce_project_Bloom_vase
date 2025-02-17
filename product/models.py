@@ -40,7 +40,7 @@ class Product(models.Model):
         return sum(variant.quantity for variant in self.variants.all())
     
 class Category(models.Model):
-    name = models.CharField(max_length=100, null=False)
+    name = models.CharField(max_length=100, unique=True, null=False)
     inactive = models.BooleanField(default=False) # soft_delete
 
     def __str__(self):

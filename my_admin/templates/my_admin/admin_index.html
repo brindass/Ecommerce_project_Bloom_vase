@@ -34,7 +34,7 @@
               <span class="hide-menu">Home</span>
             </li>
             <li class="sidebar-item">
-              <a class="sidebar-link" href="#" aria-expanded="false">
+              <a class="sidebar-link" href="{% url 'admin_dashboard' %}" aria-expanded="false">
                 <span>
                   <i class="ti ti-layout-dashboard"></i>
                 </span>
@@ -91,6 +91,13 @@
                 <span class="hide-menu">Coupon</span>
               </a>
             </li>
+            <a class="sidebar-link" href="{% url 'sales_report_home' %}" aria-expanded="false">
+              <span>
+                <i class="ti ti-layout-dashboard"></i>
+              </span>
+              <span class="hide-menu">Sales Report</span>
+            </a>
+          </li>
             <li class="nav-small-cap">
               <a class="sidebar-link" href="{% url 'admin_cancel_update' %}" aria-expanded="false">
               <i class="ti ti-dots nav-small-cap-icon fs-4"></i>

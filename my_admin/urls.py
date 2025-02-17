@@ -6,7 +6,8 @@ from .views import (
     admin_cancel_update, cancel_reject, cancel_approve, add_category_offer,
     list_category_offers, edit_category_offer,  delete_category_offer,  add_product_offer,
     list_product_offers, edit_product_offer, delete_product_offer, list_coupon, add_coupon,
-    edit_coupon, apply_coupon,  delete_coupon
+    edit_coupon, apply_coupon,  delete_coupon, sales_report, download_sales_report_pdf, 
+    admin_dashboard,manage_variants
 
 
 )
@@ -21,6 +22,8 @@ urlpatterns = [
     path('update_product/',update_product,name ='update_product'),
     path('products/',create_product,name ='create&list_product'),
     path('delete_product/<int:pk>/',delete_product,name ='delete_product'),
+    path('manage_variants/<int:product_id>/',manage_variants,name ='manage_variants'),
+
     path('orders/', list_order, name = 'list_order'),
     path('orders/<int:order_id>', order_details, name = 'admin_order_details'),
     path('admin_cancel_update/', admin_cancel_update, name ='admin_cancel_update'),
@@ -43,6 +46,12 @@ urlpatterns = [
     path('edit-coupon/<int:pk>/', edit_coupon, name='edit_coupon'),
     path('apply-coupon/', apply_coupon, name='apply_coupon'),
     path('delete-coupon/<int:pk>/', delete_coupon, name='delete_coupon'),
+
+    path('sales_report/', sales_report, name='sales_report'),
+    path('sales_report_home/', sales_report, name='sales_report_home'),
+    path('sales_report_pdf/<int:pk>', download_sales_report_pdf, name='download_sales_report_pdf'),
+    path('admin_dashboard', admin_dashboard, name='admin_dashboard'),
+    
     
 
 ]

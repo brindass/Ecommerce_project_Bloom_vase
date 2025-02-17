@@ -5,6 +5,7 @@
 {% endblock head %}
 {% block body %}
 <div style= 'margin-left:15px;'>
+    
 
     {% comment %} <div>
         <h2 style="color: black; margin-top: 10px;"> _</h2>
@@ -17,6 +18,13 @@
     </button>
     
     <div class="container">
+        {% if messages %}
+        <div class="alert alert-danger">
+          {% for message in messages %}
+            <p>{{ message }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
         <div>
             <h2 style="color: black; margin-top: 50px;">Product Categories</h2>
         </div>

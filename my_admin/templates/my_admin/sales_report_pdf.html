@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Sales Report PDF</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        p {
+            text-align: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #000;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+    <h1>Sales Report</h1>
+    <p>Period: {{ start_date|date:"F d, Y" }} - {{ end_date|date:"F d, Y" }}</p>
+
+    <!-- Sales Summary Section -->
+    <table>
+        <thead>
+            <tr>
+                <th>Sale Details</th>
+                <th>Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Total Sale Amount For Delivered</td>
+                <td>Rs.{{ total_sales_delivered }}</td>
+            </tr>
+            <tr>
+                <td>Number of Delivered Orders</td>
+                <td>{{ delivery_order_count }}</td>
+            </tr>
+            <tr>
+                <td>Coupon Discounts Applied</td>
+                <td>Rs.{{ coupon_discount }}</td>
+            </tr>
+            <tr>
+                <td>Total Actual Price of Products</td>
+                <td>Rs.{{ total_actual_price_of_product }}</td>
+            </tr>
+            <tr>
+                <td>Total Offer Discounts</td>
+                <td>Rs.{{ total_offer_discount }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Order-wise Breakdown Section -->
+    <h2 style="text-align: center; margin-top: 40px;">Order-wise Details</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Order ID</th>
+                <th>User</th>
+                <th>Total Price</th>
+                <th>Product</th>
+                <th>Quantity</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in delivered_orders %}
+            <tr>
+                <td rowspan="{{ order.orderitem_set.all|length }}">{{ order.id }}</td>
+                <td rowspan="{{ order.orderitem_set.all|length }}">{{ order.user.username }}</td>
+                <td rowspan="{{ order.orderitem_set.all|length }}">Rs.{{ order.total_price }}</td>
+                {% for item in order.orderitem_set.all %}
+                {% if forloop.first %}
+                <td>{{ item.product.name }}</td>
+                <td>{{ item.quantity }}</td>
+            </tr>
+                {% else %}
+            <tr>
+                <td>{{ item.product.name }}</td>
+                <td>{{ item.quantity }}</td>
+            </tr>
+                {% endif %}
+                {% endfor %}
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% comment %} <p class="footer">Generated on: {{ report.created_at|date:"F d, Y H:i A" }}</p> {% endcomment %}
+</body>
+</html>

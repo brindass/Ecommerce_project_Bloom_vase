@@ -1,3 +1,6 @@
+{% extends 'user/index.html' %}
+{% load static %}
+{% block body %}
 <div style="width: 50%; margin: 40px auto; background-color: #ffffff; border: 1px solid #ddd; padding: 20px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); border-radius: 8px;">
     <h1 style="text-align: center; font-size: 2rem; color: #333;">User Profile</h1>
     <h5><a href="{% url 'home' %}" style="text-decoration: none; color: #007bff;">Home</a></h5>
@@ -176,3 +179,4 @@
         document.getElementById('addresses-section').style.display = 'none';
     });
 </script>
+{% endblock body %}

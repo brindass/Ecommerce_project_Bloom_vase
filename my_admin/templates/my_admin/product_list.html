@@ -27,6 +27,7 @@
                 <th scope="col">Price</th>
                 <th scope="col">Update</th>
                 <th scope="col">Delete</th>
+                <th scope="col">Variants</th>
               </tr>
             </thead>
             <tbody>
@@ -51,6 +52,12 @@
                   {% else %}
                   <td><a href="{% url 'delete_product' product.id%}" class='btn btn-info btn-sm'>Delete</a></td>
                   {% endif %}
+                  <td>
+                    <a href="{% url 'manage_variants' product.id %}" class="btn btn-warning btn-sm">
+                        Manage Variants
+                    </a>
+                </td>
+                
                 </tr>
                 {% endfor %}
             </tbody>
@@ -362,6 +369,7 @@
             }
         });
     });
+    
 
 </script>
 

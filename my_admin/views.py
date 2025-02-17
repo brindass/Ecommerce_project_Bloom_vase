@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from user.models import MyUser, Wallet, Transaction
 from django.contrib import messages
-from django.db.models import Q
+from django.db.models import Q, Sum, Count
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.core.paginator import Paginator
@@ -11,15 +11,102 @@ from django.contrib.auth import authenticate, login
 from django.http import HttpResponse
 from order.models import Order,OrderItem, OrderCancellation
 from decimal import Decimal
-from datetime import datetime
+from datetime import datetime,timedelta
 from django.utils import timezone
-from.models import Coupon
+from .models import Coupon, SalesReport
 from .forms import AddCouponForm, EditCouponForm
 from django.views.decorators.csrf import csrf_exempt
+from django.http import HttpResponseForbidden
+from django.db import IntegrityError
+import calendar
+import io
+from django.template.loader import get_template
+from xhtml2pdf import pisa
+from django.db.models.functions import TruncDate, TruncMonth, TruncYear
+
 
 # Create your views here.
 def test(request):
     return render(request,'my_admin/category.html')
+
+def admin_dashboard(request):
+    if request.user.is_staff:
+        # Total Sales Count (Delivered Orders)
+        total_sales = Order.objects.filter(status='Delivered', is_cancelled=False).count()
+        
+        # Total Revenue (Sum of total_price for Delivered Orders)
+        total_price = Order.objects.filter(status='Delivered', is_cancelled=False).aggregate(total_price=Sum('total_price'))['total_price'] or Decimal(0)
+
+        # Total Users
+        total_users = MyUser.objects.count()
+        
+        # Best Selling Products (Top 10)
+        top_products = (
+            OrderItem.objects.values('product')
+            .annotate(order_count=Count('id'))
+            .filter(order__status='Delivered', order__is_cancelled=False)
+            .order_by('-order_count')[:10]
+        )
+        
+        top_products_with_details = [
+            {'product': get_object_or_404(Product, id=item['product']), 'order_count': item['order_count']}
+            for item in top_products
+        ]
+        
+        # Best Selling Categories (Top 10)
+        top_categories = (
+            OrderItem.objects.values('product__category')
+            .annotate(order_count=Count('id'))
+            .filter(order__status='Delivered', order__is_cancelled=False)
+            .order_by('-order_count')[:10]
+        )
+        
+        top_categories_with_details = [
+            {'category': get_object_or_404(Category, id=item['product__category']), 'order_count': item['order_count']}
+            for item in top_categories
+        ]
+        
+        # Daily Sales
+        daily_sales = (
+            Order.objects.filter(status='Delivered', is_cancelled=False)
+            .annotate(date_created=TruncDate('created_at'))
+            .values('date_created')
+            .annotate(total_sales=Sum('total_price'))
+            .order_by('-date_created')
+        )
+        
+        # Monthly Sales
+        monthly_sales = (
+            Order.objects.filter(status='Delivered', is_cancelled=False)
+            .annotate(month_created=TruncMonth('created_at'))
+            .values('month_created')
+            .annotate(total_sales=Sum('total_price'))
+            .order_by('-month_created')
+        )
+        
+        # Yearly Sales
+        yearly_sales = (
+            Order.objects.filter(status='Delivered', is_cancelled=False)
+            .annotate(year_created=TruncYear('created_at'))
+            .values('year_created')
+            .annotate(total_sales=Sum('total_price'))
+            .order_by('-year_created')
+        )
+        
+        context = {
+            'total_sales': total_sales,
+            'total_price': total_price,
+            'total_users': total_users,
+            'top_products': top_products_with_details,
+            'top_categories': top_categories_with_details,
+            'daily_sales': daily_sales,
+            'monthly_sales': monthly_sales,
+            'yearly_sales': yearly_sales,
+        }
+        
+        return render(request, 'my_admin/admin_dashboard.html', context)
+    
+    return redirect('admin_login')
 
 # admin_login
 def admin_login(request):
@@ -73,21 +160,37 @@ def add_category(request):
         if request.method == 'POST':
             name = request.POST.get('name').strip()
             if name:
-                Category.objects.create(name=name)
+                if Category.objects.filter(name__iexact=name).exists():
+                    messages.error(request,"Category already exists")
+                else:
+                    Category.objects.create(name=name)
+                    messages.success(request, "Category added successfully")
         categories = Category.objects.all()
         context = {'categories':categories}
         print(context)
         return render(request,'my_admin/category.html',context)
 
 
-def update_category(request,pk):
+def update_category(request, pk):
     if request.user.is_staff:
         if request.method == 'POST':
             category = Category.objects.get(id=pk)
-            name = request.POST.get('name')
+            name = request.POST.get('name').strip()
+            
+            # Check if the name already exists (excluding the current category)
+            if Category.objects.filter(name=name).exclude(id=pk).exists():
+                messages.error(request, "A category with this name already exists.")
+                return redirect('add_category')
+            
+            # Update the category name
             category.name = name
-            category.save()
-            return redirect('add_category')
+            try:
+                category.save()
+                messages.success(request, "Category updated successfully.")
+                return redirect('add_category')
+            except IntegrityError:
+                messages.error(request, "There was an error updating the category.")
+                return redirect('add_category')
      
 
 def delete_category(request,pk):
@@ -186,6 +289,25 @@ def delete_product(request,pk):
         product.soft_deleted = not product.soft_deleted
         product.save()
         return redirect('create&list_product')
+    
+def manage_variants(request, product_id):
+    product = get_object_or_404(Product, id=product_id)
+    formset = ProductVariantFormSet(instance=product)
+
+    if request.method == "POST":
+        formset = ProductVariantFormSet(request.POST, request.FILES, instance=product)
+        if formset.is_valid():
+            formset.save(commit=True)
+            for form in formset.forms:
+                print("Delete field value: ", form.cleaned_data.get("DELETE"))
+
+            return redirect('create&list_product')
+
+    context = {
+        'product': product,
+        'formset': formset,
+    }
+    return render(request, 'my_admin/manage_variants.html', context)
 
 def list_order(request):
     if request.user.is_staff:
@@ -259,15 +381,21 @@ def list_order(request):
         return render(request, 'my_admin/order_list.html', context)
     
 def order_details(request, order_id):
-    if request.user.is_staff:
-        order = get_object_or_404(Order, id=order_id)
-        order_items = OrderItem.objects.filter(order=order)
+    # Check if the user is an admin
+    if not request.user.is_staff:
+        return HttpResponseForbidden("You are not authorized to access this page.")
+    
 
-        context = {
-            'order': order,
-            'order_items': order_items,
-        }
-        return render(request, 'my_admin/admin_order_details.html', context)
+    # Fetch the order and order items
+    order = get_object_or_404(Order, id=order_id)
+    order_items = OrderItem.objects.filter(order=order)
+
+    context = {
+        'order': order,
+        'order_items': order_items,
+    }
+    
+    return render(request, 'my_admin/admin_order_details.html', context)
     
 def admin_cancel_update(request):
     if request.user.is_staff:
@@ -647,3 +775,121 @@ def delete_coupon(request, pk):
         messages.success(request, "Coupon deleted successfully!")
         return redirect('list_coupon')
     return redirect('admin_login')
+
+# generate sales_report
+def sales_report(request):
+    if request.user.is_staff:
+        if request.method == 'POST':
+            period = request.POST.get('period')
+            start_date = end_date = timezone.now()
+
+            if period == 'daily':
+                start_date = timezone.now().replace(hour=0, minute=0, second=0)
+            elif period == 'weekly':
+                start_date = timezone.now() - timedelta(days=timezone.now().weekday())
+                start_date = start_date.replace(hour=0, minute=0, second=0)
+                end_date = start_date + timedelta(days=7)
+            elif period == 'monthly':
+                start_date = timezone.now().replace(day=1, hour=0, minute=0, second=0)
+                last_day_of_month = calendar.monthrange(start_date.year, start_date.month)[1]
+                end_date = start_date.replace(day=last_day_of_month, hour=23, minute=59, second=59)
+            elif period == 'custom':
+                start_date = datetime.strptime(request.POST.get('start_date'), '%Y-%m-%d').replace(hour=0, minute=0, second=0)
+                end_date = datetime.strptime(request.POST.get('end_date'), '%Y-%m-%d').replace(hour=23, minute=59, second=59)
+
+            delivered_orders = Order.objects.filter(
+                created_at__range=[start_date, end_date], status='Delivered'
+            ).filter(Q(is_return=False) | Q(return_status='Rejected'))
+
+            total_sales_delivered = delivered_orders.aggregate(total_sales=Sum('total_price'))['total_sales'] or 0
+            delivery_order_count = delivered_orders.count()
+
+            # Calculate coupon discount
+            coupon_discount = sum(
+                (order.total_price * order.coupon.discount_percentage / 100) if order.coupon else 0
+                for order in delivered_orders
+            )
+
+            # Calculate actual total price (before discounts)
+            total_actual_price = sum(
+                item.product.price * item.quantity
+                for order in delivered_orders
+                for item in order.orderitem_set.all()
+            )
+
+            # Calculate total offer discount
+            total_offer_discount = sum(
+                (item.product.price * item.quantity) - (item.price * item.quantity)
+                for order in delivered_orders
+                for item in order.orderitem_set.all()
+            )
+
+            # Create the report
+            report = SalesReport.objects.create(
+                user_admin=request.user,
+                start_date=start_date,
+                end_date=end_date,
+                total_sales_delivered=total_sales_delivered,
+                delivery_order_count=delivery_order_count,
+                coupon_discount=coupon_discount,
+                total_actual_price=total_actual_price,
+                total_offer_discount=total_offer_discount
+            )
+
+            context = {
+                'delivered_orders': delivered_orders,
+                'total_sales_delivered': total_sales_delivered,
+                'delivery_order_count': delivery_order_count,
+                'coupon_discount': coupon_discount,
+                'start_date': start_date,
+                'end_date': end_date,
+                'total_actual_price_of_product': total_actual_price,
+                'total_offer_discount': total_offer_discount,
+                'report': report
+            }
+            return render(request, 'my_admin/sales_report.html', context)
+
+        return render(request, 'my_admin/sales_home.html')
+    return redirect('admin_login')
+
+
+def render_to_pdf(template_src, context_dict):
+    template = get_template(template_src)
+    html = template.render(context_dict)
+    result = io.BytesIO()
+    pdf = pisa.pisaDocument(io.BytesIO(html.encode("UTF-8")), result)
+    if not pdf.err:
+        return result.getvalue()
+    return None
+
+# View to generate and download sales report PDF
+def download_sales_report_pdf(request, pk):
+    if request.user.is_staff:
+        try:
+            report = SalesReport.objects.get(pk=pk, user_admin=request.user)
+        except SalesReport.DoesNotExist:
+            return HttpResponse("Error: Sales report not found", status=400)
+
+        delivered_orders = Order.objects.filter(
+            created_at__range=[report.start_date, report.end_date], status='Delivered'
+        ).filter(Q(is_return=False) | Q(return_status='Rejected'))
+
+        context = {
+            'delivered_orders': delivered_orders,
+            'total_sales_delivered': report.total_sales_delivered,
+            'delivery_order_count': report.delivery_order_count,
+            'coupon_discount': report.coupon_discount,
+            'start_date': report.start_date,
+            'end_date': report.end_date,
+            'total_actual_price_of_product': report.total_actual_price,
+            'total_offer_discount': report.total_offer_discount
+        }
+
+        pdf = render_to_pdf('my_admin/sales_report_pdf.html', context)
+        if pdf:
+            response = HttpResponse(pdf, content_type='application/pdf')
+            response['Content-Disposition'] = 'attachment; filename="sales_report.pdf"'
+            return response
+        return HttpResponse("Error generating PDF", status=500)
+    return redirect('admin_login')
+

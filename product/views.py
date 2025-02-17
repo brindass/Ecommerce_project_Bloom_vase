@@ -3,9 +3,14 @@ from django.core.paginator import Paginator
 from .models import Product, ProductImage, Category, ProductVariant, ProductOffer, CategoryOffer
 from user.models import Wishlist, WishlistItem
 from django.utils import timezone
+from django.contrib.auth.decorators import login_required
 from decimal import Decimal
+from django.contrib import messages
+from django.shortcuts import redirect
 # Create your views here.
 
+
+@login_required
 def list_product(request):
     # print("inside list product")
     new_arrivals = Product.objects.all().order_by('-created')[:3]
@@ -53,8 +58,13 @@ def get_discounted_price(product):
         discounted_price=product.price
     return discounted_price
 
+@login_required
 def product_details(request,pk):
-    product = Product.objects.get(id = pk)
+    try:
+        product = Product.objects.get(id = pk)
+    except Product.DoesNotExist:
+        messages.error(request,"Sorry this product is no longer available")
+        return redirect('home')
     images = ProductImage.objects.filter(product = product)
     # all_products = []
     variants = product.variants.all() 
@@ -100,9 +110,13 @@ def product_details(request,pk):
     return render(request,'product/product_details.html',context)
 
 
-
+@login_required
 def variant_details(request, variant_id):
-    variant = ProductVariant.objects.get(id=variant_id)
+    try:
+        variant = ProductVariant.objects.get(id=variant_id)
+    except ProductVariant.DoesNotExist:
+        messages.error(request, "Sorry, this product variant is no longer available.")
+        return redirect("home")
     other_variants = ProductVariant.objects.filter(product=variant.product).exclude(id=variant_id)
 
      # Get the discounted price
@@ -126,7 +140,7 @@ def variant_details(request, variant_id):
     return render(request, 'product/variant_details.html', context)
 
 
-
+@login_required
 def product_list_search(request):
     print("inside search")
     category_id = request.GET.get('category')

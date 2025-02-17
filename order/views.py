@@ -91,6 +91,8 @@ def order_success(request):
     print("at alst")
     return redirect('view_cart')
 
+
+@login_required
 def all_orders(request):
     user = request.user
     orders_list = Order.objects.filter(user=user).order_by('-created_at')
@@ -101,6 +103,9 @@ def all_orders(request):
     orders = paginator.get_page(page_number)
 
     return render(request, 'all-orders.html', {'orders': orders})
+
+
+@login_required
 def order_details(request, order_id):
     order = get_object_or_404(Order, id=order_id, user=request.user)
     coupon = order.coupon
@@ -111,6 +116,7 @@ def order_details(request, order_id):
         coupon = None
         discount_price = None
     return render(request, 'order_details.html', {'order': order,'discount_price':discount_price})
+
 
 @login_required
 def cancel_order(request, order_id):

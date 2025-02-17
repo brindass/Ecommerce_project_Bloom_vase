@@ -161,10 +161,9 @@ def user_logout(request):
 
 
 @never_cache
+@login_required
 def home(request):
-    if request.user.is_authenticated:
-        return render(request,'product/home.html')
-    return redirect('user_login')
+    return render(request, 'product/home.html')
 
 # user profile details
 @login_required
@@ -173,7 +172,8 @@ def user_profile(request):
         user = request.user
         addresses = user.addresses.all()  
 
-        wallet = get_object_or_404(Wallet, user=user)
+        # Check if the user has a wallet; if not, create one
+        wallet, created = Wallet.objects.get_or_create(user=user)
 
         transactions = Transaction.objects.filter(wallet=wallet).order_by('-transaction_date')
 
@@ -443,7 +443,7 @@ def change_password(request):
 # Razorpay client initialization
 razorpay_client = razorpay.Client(auth=(settings.RAZOR_KEY_ID, settings.RAZOR_KEY_SECRET))
 
-
+@login_required
 def checkout(request):
     user = request.user
 
@@ -561,6 +561,7 @@ def checkout(request):
                 # Create order items and update variant/product quantities
                 for item in cart_items:
                     print(item)
+                    print('Pay meth:',payment_method)
             # Check variant stock if a variant exists
                 # Update stock
                 if item.variant:
@@ -634,6 +635,7 @@ def checkout(request):
         # Create order items and update variant/product quantities
         for item in cart_items:
             print(item)
+            print("pay meth1:",payment_method)
             # Check variant stock if a variant exists
             if item.variant:
                 if item.variant.quantity >= item.quantity:
@@ -721,6 +723,7 @@ def remove_from_wishlist(request, product_id):
     return JsonResponse({'status': 'error', 'message': 'Invalid request.'})
 
 
+@login_required
 def paymenthomepage(request):
     total_price = Decimal(request.session.get('total_price', '0'))
     print(total_price)
@@ -749,6 +752,7 @@ def paymenthomepage(request):
 
 
 @csrf_exempt
+@login_required
 def paymenthandler(request):
     print("payment")
     

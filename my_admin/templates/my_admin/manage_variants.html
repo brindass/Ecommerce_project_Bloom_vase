@@ -1,0 +1,37 @@
+{% extends 'my_admin/admin_index.html' %}
+{% block body %}
+<div class="container mt-5" style="background-color: white; color: black; padding: 20px; border-radius: 8px;">
+    <h2>Manage Variants for {{ product.name }}</h2>
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ formset.management_form }}
+        <div id="variants">
+            {% for form in formset.forms %}
+            <div class="variant-form border p-3 mb-3">
+                {{ form.as_p }}
+                <!-- Hidden DELETE field for Django formset -->
+                {{ form.DELETE }}
+                <button type="button" class="btn btn-danger btn-sm remove-variant">Remove</button>
+            </div>
+            {% endfor %}
+        </div>
+        <button type="submit" class="btn btn-success">Save Variants</button>
+        <a href="{% url 'create&list_product' %}" class="btn btn-secondary">Back to Product List</a>
+    </form>
+</div>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        document.querySelectorAll(".remove-variant").forEach(button => {
+            button.addEventListener("click", function() {
+                let variantForm = this.closest(".variant-form");
+                let deleteField = variantForm.querySelector("input[type='checkbox']");
+                
+                if (deleteField) {
+                    deleteField.checked = true; // Mark the form for deletion
+                    variantForm.style.display = "none"; // Hide the form visually
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

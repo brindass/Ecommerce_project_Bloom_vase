@@ -22,6 +22,11 @@
 {%block body%}
 <section class="product-details spad" style='margin-top:100px;'>
     <div class="container">
+        {% if messages %}
+            {% for message in messages %}
+            <p style="color: red; text-align: center;">{{ message }}</p>
+            {% endfor %}
+            {% endif %} 
         <div class="row">
             <div class="col-lg-6 col-md-6">
                 <div class="product__details__pic">

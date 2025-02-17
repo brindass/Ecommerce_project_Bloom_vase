@@ -26,6 +26,8 @@
                 <th>Total Price</th>
                 <th>Actions</th>
             </tr>
+            <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
         </thead>
         <tbody>
             {% for order in orders %}
@@ -115,7 +117,7 @@
         $('.status-select').change(function() {
             var newStatus = $(this).val();
             var orderId = $(this).data('order-id');
-            var csrfToken = '{{ csrf_token }}'; // Ensure CSRF token is included in the AJAX request
+            var csrfToken = '{{ csrf_token }}';
 
             $.ajax({
                 url: '', // The URL is the same as the current page
@@ -127,13 +129,27 @@
                 },
                 success: function(response) {
                     if (response.success) {
-                        alert('Status updated successfully');
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Updated!',
+                            text: 'Status updated successfully',
+                            showConfirmButton: false,
+                            timer: 1500
+                        });
                     } else {
-                        alert('Error updating status: ' + response.error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: 'Error updating status: ' + response.error
+                        });
                     }
                 },
                 error: function(xhr, status, error) {
-                    console.error('Error updating status:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Oops!',
+                        text: 'Something went wrong. Please try again.'
+                    });
                 }
             });
         });
