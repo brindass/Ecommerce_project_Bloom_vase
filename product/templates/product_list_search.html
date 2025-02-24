@@ -98,10 +98,10 @@
             </li>
             {% if products.has_next %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ products.next_page_number }}&category={{ selected_category }}&sort_by={{ selected_sort_by }}&query={{ search_query }}">Next</a>
+                    <a class="page-link" href="#">Next</a>
                 </li>
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ products.paginator.num_pages }}&category={{ selected_category }}&sort_by={{ selected_sort_by }}&query={{ search_query }}">Last</a>
+                    <a class="page-link" href="#">Last</a>
                 </li>
             {% endif %}
         </ul>

@@ -139,7 +139,7 @@ def list_users(request):
                 Q(email__icontains=search_query)
                 ).exclude(username='admin')
         else:
-            users = MyUser.objects.all().exclude(username = 'admin')
+            users = MyUser.objects.all().exclude(username = 'admin').order_by("-id")
         paginator = Paginator(users,12)
         page_number = request.GET.get('page')
         page = paginator.get_page(page_number)

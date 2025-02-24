@@ -29,6 +29,9 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
+STATIC_VERSION = "1.1"
+
+
 
 # Application definition
 
@@ -142,8 +145,16 @@ USE_TZ = True
 # MEDIA_URL = 'media/'
 # MEDIA_ROOT = os.path.join(BASE_DIR,'media')
 STATIC_URL = '/static/'
-# STATICFILES_DIRS = [os.path.join(BASE_DIR,'static')]
+# STATICFILES_DIRS = [os.path.join(BASE_DIR,'staticfiles')]
+
+
+
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',  # Ensure your CSS and JS files are inside this folder
+]
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+
+STATIC_ROOT = BASE_DIR / 'staticfiles' 
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

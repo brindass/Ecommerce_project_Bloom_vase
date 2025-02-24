@@ -160,13 +160,11 @@ def user_logout(request):
 
 
 
-@never_cache
-@login_required
 def home(request):
     return render(request, 'product/home.html')
 
 # user profile details
-@login_required
+@login_required(login_url='user_login')
 def user_profile(request):
     if request.user.is_authenticated:
         user = request.user
@@ -185,7 +183,7 @@ def user_profile(request):
         context = {'profile_user': user, 'addresses': addresses, 'wallet': wallet, 'transactions': transactions}
             
         return render(request, 'user/user_profile.html', context)
-    return redirect('user_login')
+    return redirect(user_login)
 
 @login_required
 def edit_profile(request):

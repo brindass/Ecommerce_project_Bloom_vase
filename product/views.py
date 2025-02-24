@@ -10,7 +10,7 @@ from django.shortcuts import redirect
 # Create your views here.
 
 
-@login_required
+
 def list_product(request):
     # print("inside list product")
     new_arrivals = Product.objects.all().order_by('-created')[:3]

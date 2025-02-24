@@ -39,7 +39,7 @@
                                 <p data-animation="fadeInLeft" data-delay=".7s" data-duration="2000ms" style='color:white'>"The beauty of modesty ... a virtue the world doesn't have much truck with: one ordinary flower in a vase, as opposed to a bouquet"</p>
                                 <!-- Hero-btn -->
                                 <div class="hero__btn" data-animation="fadeInLeft" data-delay=".8s" data-duration="2000ms">
-                                    <a href="industries.html" class="btn hero-btn" style='color:white'>Shop Now</a>
+                                    <a href="#" class="btn hero-btn" style='color:white'>Shop Now</a>
                                 </div>
                             </div>
                         </div>
@@ -61,7 +61,7 @@
                                 <p data-animation="fadeInLeft" data-delay=".7s" data-duration="2000ms">"The beauty of modesty ... a virtue the world doesn't have much truck with: one ordinary flower in a vase, as opposed to a bouquet"</p>
                                 <!-- Hero-btn -->
                                 <div class="hero__btn" data-animation="fadeInLeft" data-delay=".8s" data-duration="2000ms">
-                                    <a href="industries.html" class="btn hero-btn">Shop Now</a>
+                                    <a href="#" class="btn hero-btn">Shop Now</a>
                                 </div>
                             </div>
                         </div>
@@ -96,9 +96,9 @@
                             <img src="{{product.base_image.url}}" alt="">
                         </div>
                         <div class="product-caption">
-                            <h3><a href="product_details.html">{{product.name}}</a></h3>
+                            <h3><a href="{% url 'variant_details' product.get_default_variant.id %}">{{product.name}}</a></h3>
                             <span>Rs.{{product.price}}</span>
-                            <span>Qty{{product.total_quantity}}
+                            {% comment %} <span>Qty{{product.total_quantity}} {% endcomment %}
                         </div>
                     </div>
                 </div>
@@ -139,7 +139,7 @@
                                 </div>
                             </div>
                             <div class="popular-caption">
-                                <h3><a href="product_details.html">{{ product.name}}</a></h3>
+                                <h3>{{ product.name}}</h3>
                                 <span>Rs.{{product.price}}</span>
                             </div>
                         </div>
@@ -186,7 +186,7 @@
             <!-- Button -->
             <div class="row justify-content-center">
                 <div class="room-btn pt-70">
-                    <a href="catagori.html" class="btn view-btn1">View More Products</a>
+                    <a href="#" class="btn view-btn1">View More Products</a>
                 </div>
             </div>
         </div>
@@ -200,7 +200,7 @@
                     <div class="watch-details mb-40">
                         <h2>Vase of Choice</h2>
                         <p>Enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse.</p>
-                        <a href="shop.html" class="btn">Show Vases</a>
+                        <a href="#" class="btn">Show Vases</a>
                     </div>
                 </div>
                 <div class="col-lg-6 col-md-6 col-sm-10">
@@ -219,7 +219,7 @@
                     <div class="watch-details mb-40">
                         <h2>Vase of Choice</h2>
                         <p>Enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse.</p>
-                        <a href="shop.html" class="btn">Show Vases</a>
+                        <a href="#" class="btn">Show Vases</a>
                     </div>
                 </div>
             </div>
