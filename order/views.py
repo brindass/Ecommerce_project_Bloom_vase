@@ -154,6 +154,12 @@ def return_request(request, order_id):
    
     order = get_object_or_404(Order, id=order_id, user=request.user)
 
+    # Prevent multiple return requests
+    if order.is_return:
+        messages.error(request, "A return request has already been submitted for this order.")
+        return redirect('order_success')
+
+
     # Validate the order's eligibility for return
     if order.status not in ['Delivered']:
         messages.error(request, "You can only request returns for delivered orders.")

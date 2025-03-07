@@ -13,7 +13,7 @@ from django.shortcuts import redirect
 
 def list_product(request):
     # print("inside list product")
-    new_arrivals = Product.objects.all().order_by('-created')[:3]
+    new_arrivals = Product.objects.filter(soft_deleted=False).order_by('-created')[:3]
     products = Product.objects.filter(soft_deleted=False)
     paginator = Paginator(products,9)
     page_number = request.GET.get('page')
